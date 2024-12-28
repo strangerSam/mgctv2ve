@@ -14,4 +14,3 @@ const connectDB = async () => {
 };
 
 module.exports = connectDB;
-//"mongodb+srv://necibsamir:Jesuisneleneufjuin1985@cluster0.i1d1jkk.mongodb.net/moviedb?retryWrites=true&w=majority", pour .env si besoin
