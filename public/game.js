@@ -5,7 +5,7 @@ let testMode = false;
 document.addEventListener('DOMContentLoaded', async () => {
     try {
         // Charger le film
-        const movieResponse = await fetch('https://www.moviegoers-cats.com/api/daily-movie');
+        const movieResponse = await fetch('https://mgctv2ve-backend.onrender.com/api/daily-movie');
         currentMovie = await movieResponse.json();
         
         const imageElement = document.getElementById('daily-movie-image');
@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         imageElement.alt = `Screenshot from movie`;
 
         // Charger le nombre de tentatives actuel
-        const attemptResponse = await fetch('https://www.moviegoers-cats.com/api/attempt');
+        const attemptResponse = await fetch('https://mgctv2ve-backend.onrender.com/api/attempt');
         const attemptData = await attemptResponse.json();
         displayAttemptCount(attemptData.attempts);
 
@@ -55,14 +55,14 @@ async function validateGuess(guess) {
 
         if (!isCorrect) {
             // Incrémenter le compteur seulement si la réponse est fausse
-            const response = await fetch('https://www.moviegoers-cats.com/api/attempt', {
+            const response = await fetch('https://mgctv2ve-backend.onrender.com/api/attempt', {
                 method: 'POST'
             });
             const data = await response.json();
             displayAttemptCount(data.attempts);
         } else {
             // Réinitialiser le compteur si la réponse est correcte
-            await fetch('https://www.moviegoers-cats.com/api/reset-attempts', {
+            await fetch('https://mgctv2ve-backend.onrender.com/api/reset-attempts', {
                 method: 'POST'
             });
             displayAttemptCount(0);
@@ -98,12 +98,12 @@ async function showResult(isCorrect) {
         inputField.parentNode.insertBefore(titleDisplay, inputField);
 
         try {
-            const response = await fetch(`https://www.moviegoers-cats.com/api/check-participation?adminCode=${adminCode}&testMode=${testMode}`);
+            const response = await fetch(`https://mgctv2ve-backend.onrender.com/api/check-participation?adminCode=${adminCode}&testMode=${testMode}`);
             const data = await response.json();
 
             if (data.hasParticipated && data.userInfo) {
                 // Incrémenter le score
-                const scoreResponse = await fetch('https://www.moviegoers-cats.com/api/increment-score', {
+                const scoreResponse = await fetch('https://mgctv2ve-backend.onrender.com/api/increment-score', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -176,7 +176,7 @@ document.getElementById('user-form').addEventListener('submit', async (e) => {
             headers['test-mode'] = 'true';
         }
 
-        const response = await fetch('https://www.moviegoers-cats.com/api/submit-user', {
+        const response = await fetch('https://mgctv2ve-backend.onrender.com/api/submit-user', {
             method: 'POST',
             headers: headers,
             body: JSON.stringify(formData)
