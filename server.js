@@ -313,7 +313,7 @@ app.post('/api/submit-user', async (req, res) => {
         
         await user.save();
 
-        const verificationLink = `https://www.moviegoers-cats.com/verify-email/${verificationToken}`;
+        const verificationLink = `https://mgctv2ve-backend.onrender.com/verify-email/${verificationToken}`;
         
         await transporter.sendMail({
             from: process.env.EMAIL_USER,
