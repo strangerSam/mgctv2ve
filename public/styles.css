@@ -1,0 +1,667 @@
+html {
+    scroll-behavior: smooth;
+}
+
+/* Reset et base */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Happy Monkey', cursive;
+    background-color: #0C1F30;
+    color: white;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Header */
+header {
+    padding: 20px 0;
+    text-align: center;
+    background-color: rgba(12, 31, 48, 0.8);
+}
+
+/* Menu Mobile */
+.menu-toggle {
+    display: none;
+    cursor: pointer;
+    font-size: 1.5rem;
+    position: absolute;
+    top: 20px;
+    right: 20px;
+}
+
+.menu-toggle.active i {
+    color: #4ECDC4;
+}
+
+/* Navigation */
+nav {
+    position: relative;
+    padding: 20px 20px;
+}
+
+.nav-links {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 70px;
+}
+
+nav a {
+    color: white;
+    text-decoration: none;
+    font-weight: 300;
+    transition: color 0.3s ease;
+    font-size: 1.8rem; /* Augmenté la taille de police */
+}
+
+nav a:hover {
+    color: #4ECDC4;
+}
+
+.social-icon {
+    display: flex;
+    align-items: center;
+    font-size: 1.8rem;
+}
+
+.social-icon:hover {
+    color: #4ECDC4;
+}
+
+/* Hero Section */
+.hero {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 50px 20px 0 20px;
+    gap: 50px;
+}
+
+.hero-content {
+    max-width: 50%;
+}
+
+.hero-content h1 {
+    font-size: 3rem;
+    margin-bottom: 20px;
+    color: white;
+}
+
+.hero-content p {
+    font-size: 1.2rem;
+    line-height: 1.6;
+    margin-bottom: 30px; /* Ajout d'une marge sous le paragraphe */
+}
+.btn-tell-more {
+    display: inline-block;
+    padding: 12px 30px;
+    background-color: #558380;
+    color: white;
+    border-radius: 25px;
+    text-decoration: none;
+    font-size: 1.2rem;
+    transition: background-color 0.3s ease;
+}
+
+.btn-tell-more:hover {
+    background-color: #58ada8;
+}
+
+.hero-image img {
+    width: 750px;
+    height: auto;
+    max-width: 100%;
+    margin-bottom: -4px;
+}
+
+/* Footer */
+footer {
+    text-align: center;
+    padding: 20px;
+    background-color: rgba(12, 31, 48, 0.8);
+}
+
+/* Media Queries pour le menu mobile */
+@media (max-width: 768px) {
+    .menu-toggle {
+        display: block;
+        z-index: 1000;
+    }
+
+    .nav-links {
+        position: fixed;
+        top: 0;
+        right: -100%;
+        height: 100vh;
+        width: 250px;
+        flex-direction: column;
+        background-color: #0C1F30;
+        padding-top: 60px;
+        transition: 0.3s ease-in-out;
+        box-shadow: -2px 0 5px rgba(0, 0, 0, 0.2);
+        z-index: 9999; /* Augmenté significativement */
+    }
+
+    .nav-links.active {
+        right: 0;
+    }
+
+    .nav-links a {
+        padding: 15px 0;
+        position: relative; /* Ajout */
+        z-index: 10000; /* Ajout */
+    }
+
+    /* Cacher les points de la roadmap derrière la navigation */
+    .roadmap-item::after {
+        z-index: 1; /* S'assure que les points restent derrière le menu */
+    }
+}
+
+/* Game Section */
+.game-section {
+    padding: 50px 20px;
+}
+
+.game-container {
+    max-width: 920px; /* 800px + 15% = 920px */
+    margin: 0 auto;
+    background-color: white;
+    border-radius: 15px;
+    padding: 30px;
+    min-height: 460px; /* 400px + 15% = 460px */
+}
+#movie-image-container {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#daily-movie-image {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+}
+.guess-container {
+    margin-top: 30px;
+    text-align: center;
+}
+
+.guess-input {
+    width: 80%;
+    max-width: 400px;
+    padding: 15px 20px;
+    font-size: 1.2rem;
+    border: none;
+    border-radius: 25px;
+    outline: none;
+    transition: all 0.3s ease;
+    font-family: 'Happy Monkey', cursive;
+    background-color: white;
+    color: #000000 !important; /* Ajout de la couleur du texte */
+}
+
+.guess-input:hover,
+.guess-input:focus {
+    background-color: #f5f5f5;
+}
+
+.guess-input::placeholder {
+    color: #999;
+}
+
+#attempt-count {
+    margin-top: 15px;
+    font-size: 1rem;
+    color: #666;
+}
+
+#guess-result {
+    margin-top: 15px;
+    padding: 10px;
+    border-radius: 15px;
+    font-size: 1.1rem;
+}
+
+.result-correct {
+    color: #2ecc71;
+}
+
+.result-incorrect {
+    color: #e74c3c;
+}
+
+/* Countdown Banner */
+.countdown-banner {
+    background-color: #142f47;
+    width: 100%;
+    padding: 30px 0;
+}
+
+.countdown-container {
+    display: flex;
+    justify-content: center;
+    gap: 50px;
+}
+
+.countdown-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.countdown-item span:first-child {
+    font-size: 9rem;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.countdown-label {
+    font-size: 1.5rem;
+    text-transform: uppercase;
+    color: #888;
+}
+
+
+.user-form-container {
+    margin-top: 20px;
+    padding: 20px;
+}
+
+.user-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.form-input {
+    width: 100%;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 25px;
+    font-family: 'Happy Monkey', cursive;
+    background-color: white;
+    color: black;
+    font-size: 1rem;
+}
+
+.form-input:hover {
+    background-color: #f5f5f5;
+}
+
+.form-submit {
+    padding: 12px 30px;
+    background-color: #558380;
+    color: white;
+    border: none;
+    border-radius: 25px;
+    cursor: pointer;
+    font-family: 'Happy Monkey', cursive;
+    font-size: 1rem;
+    transition: background-color 0.3s ease;
+}
+
+.form-submit:hover {
+    background-color: #446966;
+}
+
+.participation-message {
+    text-align: center;
+    color: white;
+    font-size: 1.2rem;
+    padding: 10px 20px;
+    margin-top: 10px;
+    background-color: #558380;
+    border-radius: 10px;
+    margin: 20px auto;
+    max-width: 400px;
+}
+
+.success-message {
+    text-align: center;
+    color: #2ecc71;
+    font-size: 1.2rem;
+    padding: 20px;
+    margin-top: 20px;
+}
+
+.error-message {
+    text-align: center;
+    color: #e74c3c;
+    font-size: 1.2rem;
+    padding: 20px;
+    margin-top: 20px;
+}
+
+.movie-title {
+    width: 80%;
+    max-width: 400px;
+    padding: 15px 20px;
+    font-size: 1.2rem;
+    background-color: #f5f5f5;
+    border-radius: 25px;
+    margin: 0 auto;
+    color: black;
+    font-family: 'Happy Monkey', cursive;
+}
+
+/* ROADMAP SECTION */
+
+/* Ajuster le padding-top de la section pour le scroll */
+#roadmap {
+    scroll-margin-top: 20px; /* Ajuste la position d'arrêt du scroll */
+}
+
+.roadmap-title {
+    text-align: center;
+    color: white;
+    font-size: 2.5rem;
+    margin-bottom: 50px;
+    font-family: 'Happy Monkey', cursive;
+}
+
+.roadmap-section {
+    padding: 50px 20px;
+    position: relative;
+    z-index: 1; /* Valeur basse */
+}
+
+.roadmap-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    position: relative;
+    padding: 40px 0;
+}
+
+.roadmap-line {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background-color: white;
+    transform: translateX(-50%);
+    z-index: 1; /* Valeur basse */
+}
+
+.roadmap-item {
+    width: 100%;
+    margin-bottom: 60px;
+    position: relative;
+    display: flex;
+}
+
+.roadmap-item::after {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    background-color: #4ECDC4;
+    border-radius: 50%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border: 4px solid white;
+    z-index: 1; /* Valeur basse */
+}
+
+.roadmap-item::before {
+    content: '';
+    position: absolute;
+    height: 2px;
+    width: 60px; /* Longueur du trait */
+    background-color: white;
+    top: 50%;
+    left: 50%;
+    z-index: 1; /* Valeur basse */
+}
+
+/* Trait pour les éléments à gauche */
+.roadmap-item.left::before {
+    transform: translateY(-50%) translateX(-100%);
+    margin-left: -15px; /* Espace après le point */
+}
+
+/* Trait pour les éléments à droite */
+.roadmap-item.right::before {
+    transform: translateY(-50%);
+    margin-left: 15px; /* Espace avant le point */
+}
+
+.roadmap-box {
+    background-color: white;
+    padding: 25px;
+    border-radius: 15px;
+    width: calc(50% - 100px); /* Ajusté pour tenir compte de la longueur du trait */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.roadmap-item.left {
+    justify-content: flex-start;
+}
+
+.roadmap-item.right {
+    justify-content: flex-end;
+}
+
+.roadmap-box h3 {
+    color: #0C1F30;
+    margin-bottom: 10px;
+    font-size: 1.2rem;
+}
+
+.roadmap-box p {
+    color: #666;
+    font-size: 1rem;
+    line-height: 1.5;
+}
+
+/* Style pour le conteneur d'authentification */
+.auth-container {
+    margin-left: auto;
+    display: flex;
+    gap: 10px;
+}
+
+.auth-btn {
+    padding: 8px 20px;
+    border: 2px solid white;
+    background: transparent;
+    color: white;
+    border-radius: 25px;
+    cursor: pointer;
+    font-family: 'Happy Monkey', cursive;
+    transition: all 0.3s ease;
+}
+
+.auth-btn:hover {
+    background-color: white;
+    color: #0C1F30;
+}
+
+/* Modal styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+}
+
+.modal-content {
+    background-color: white;
+    margin: 15% auto;
+    padding: 30px;
+    border-radius: 15px;
+    width: 90%;
+    max-width: 400px;
+    position: relative;
+}
+
+.close {
+    position: absolute;
+    right: 20px;
+    top: 15px;
+    font-size: 28px;
+    cursor: pointer;
+    color: #666;
+}
+
+.modal h2 {
+    color: #0C1F30;
+    margin-bottom: 20px;
+    font-family: 'Happy Monkey', cursive;
+}
+
+.auth-input {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 15px;
+    border: 1px solid #ddd;
+    border-radius: 25px;
+    font-family: 'Happy Monkey', cursive;
+}
+
+.auth-submit {
+    width: 100%;
+    padding: 12px;
+    background-color: #558380;
+    color: white;
+    border: none;
+    border-radius: 25px;
+    cursor: pointer;
+    font-family: 'Happy Monkey', cursive;
+    transition: background-color 0.3s ease;
+}
+
+.auth-submit:hover {
+    background-color: #446966;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .auth-container {
+        margin-top: 15px;
+        justify-content: center;
+    }
+}
+
+
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+    .hero-image img {
+        width: 600px;
+    }
+}
+
+@media (max-width: 1024px) {
+    .hero {
+        flex-direction: column;
+        text-align: center;
+        padding-bottom: 0;
+    }
+
+    .hero-content {
+        max-width: 100%;
+        margin-bottom: 30px;
+    }
+
+    .hero-image img {
+        width: 500px;
+    }
+}
+
+@media (max-width: 768px) {
+    .hero-image img {
+        width: 400px;
+    }
+
+    .countdown-container {
+        gap: 20px;
+    }
+
+    .countdown-item span:first-child {
+        font-size: 2rem;
+    }
+
+    .countdown-label {
+        font-size: 0.8rem;
+    }
+
+    .roadmap-title {
+        font-size: 2rem;
+        margin-bottom: 30px;
+    }
+
+    .roadmap-line {
+        left: 30px;
+    }
+
+    .roadmap-item {
+        justify-content: flex-start;
+        margin-left: 50px;
+    }
+
+    .roadmap-item.left,
+    .roadmap-item.right {
+        justify-content: flex-start;
+    }
+
+    .roadmap-box {
+        width: calc(100% - 120px);
+    }
+
+    .roadmap-item::after {
+        left: 30px;
+    }
+
+    /* Ajustement des traits pour mobile */
+    .roadmap-item.left::before,
+    .roadmap-item.right::before {
+        left: 30px;
+        margin-left: 15px;
+    }
+}
+
+@media (max-width: 480px) {
+    .hero-image img {
+        width: 300px;
+    }
+
+    .countdown-container {
+        gap: 10px;
+    }
+
+    .countdown-item span:first-child {
+        font-size: 1.5rem;
+    }
+    .nav-links.active ~ main .roadmap-item::after,
+    .nav-links.active ~ main .roadmap-line,
+    .nav-links.active ~ main .roadmap-item::before {
+        display: none;
+    }
+}
+
+/* Responsive Design pour le jeu */
+@media (max-width: 768px) {
+    .game-section {
+        padding: 30px 15px;
+    }
+    
+    .game-container {
+        padding: 20px;
+    }
+}

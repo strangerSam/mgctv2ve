@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Moviegoers Cats</title>
+    <link href="https://fonts.googleapis.com/css2?family=Happy+Monkey&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <nav>
+            <div class="menu-toggle">
+                <i class="fas fa-bars"></i>
+            </div>
+            <div class="nav-links">
+                <a href="#roadmap">Roadmap</a>
+                <a href="#artist">Artist</a>
+                <a href="#guess-movie">Guess the Movie</a>
+                <a href="https://instagram.com/themoviewoerscats" target="_blank" class="social-icon">
+                    <i class="fab fa-instagram"></i>
+                </a>
+                <a href="https://twitter.com/themoviewoerscats" target="_blank" class="social-icon">
+                    <i class="fab fa-twitter"></i>
+                </a>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <section class="hero">
+            <div class="hero-content">
+                <h1>THE MOVIEGOERS CATS</h1>
+                <p>Introducing the moviegoers cats. A Solana based token with handrawed cats. <br>Each cats will grant access to future perks including a private discord server for all members.</p>
+                <a href="#" class="btn-tell-more">Tell me more</a>
+            </div>
+            <div class="hero-image">
+                <img src="../public_html/assets/images/moviegoercat.png" alt="Moviegoer Cat">
+            </div>
+        </section>
+        
+        <section class="countdown-banner">
+            <div class="countdown-container">
+                <div class="countdown-item">
+                    <span id="days">00</span>
+                    <span class="countdown-label">Days</span>
+                </div>
+                <div class="countdown-item">
+                    <span id="hours">00</span>
+                    <span class="countdown-label">Hours</span>
+                </div>
+                <div class="countdown-item">
+                    <span id="minutes">00</span>
+                    <span class="countdown-label">Minutes</span>
+                </div>
+                <div class="countdown-item">
+                    <span id="seconds">00</span>
+                    <span class="countdown-label">Seconds</span>
+                </div>
+            </div>
+        </section>
+        <section id="guess-movie" class="game-section">
+            <div class="game-container">
+                <div id="movie-image-container">
+                    <img id="daily-movie-image" src="" alt="Daily Movie Screenshot">
+                </div>
+                <div class="guess-container">
+                    <input type="text" id="movie-guess" placeholder="Guess the movie..." class="guess-input">
+                </div>
+                <div class="user-form-container" style="display: none;">
+                    <form id="user-form" class="user-form">
+                        <input type="text" name="firstName" placeholder="First Name" required class="form-input">
+                        <input type="email" name="email" placeholder="Email" required class="form-input">
+                        <input type="text" name="solanaAddress" placeholder="Solana Address" required class="form-input">
+                        <button type="submit" class="form-submit">Submit</button>
+                    </form>
+                </div>
+            </div>
+        </section>
+        <section id="roadmap" class="roadmap-section">
+            <h2 class="roadmap-title">Roadmap</h2>
+            <div class="roadmap-container">
+                <div class="roadmap-line"></div>
+                
+                <div class="roadmap-item left">
+                    <div class="roadmap-box">
+                        <h3>Développer la communauté</h3>
+                        <p>Création et développement d'une communauté active autour du projet</p>
+                    </div>
+                </div>
+        
+                <div class="roadmap-item right">
+                    <div class="roadmap-box">
+                        <h3>Développer le site de recherche</h3>
+                        <p>Création d'un site permettant de chercher des films via des mots clés précis</p>
+                    </div>
+                </div>
+        
+                <div class="roadmap-item left">
+                    <div class="roadmap-box">
+                        <h3>Version Béta</h3>
+                        <p>Lancement de la version béta du site de recherche de films</p>
+                    </div>
+                </div>
+        
+                <div class="roadmap-item right">
+                    <div class="roadmap-box">
+                        <h3>Pre-sale MGCT</h3>
+                        <p>Lancement de la pre-sale de la crypto-monnaie MGCT</p>
+                    </div>
+                </div>
+        
+                <div class="roadmap-item left">
+                    <div class="roadmap-box">
+                        <h3>Lancement MGCT</h3>
+                        <p>Lancement officiel de la crypto-monnaie MGCT</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="admin-controls" style="position: fixed; bottom: 10px; right: 10px; opacity: 0.1;">
+            <button id="admin-toggle" style="background: none; border: none; color: white; cursor: pointer; margin-right: 10px;">⚙️</button>
+            <button id="test-toggle" style="background: none; border: none; color: white; cursor: pointer;">🔍</button>
+        </div>
+        © 2024 MGCT • All Rights Reserved
+    </footer>
+    <script src="mobile-menu.js"></script>
+    <script src="countdown.js"></script>
+    <script src="game.js"></script>
+    <script src="scroll.js"></script>
+</body>
+</html>
