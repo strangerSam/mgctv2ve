@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         try {
-            const response = await fetch('https://www.moviegoers-cats.com/api/login', {
+            const response = await fetch('https://mgctv2ve-backend.onrender.com/api/login', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -72,7 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         try {
-            const response = await fetch('https://www.moviegoers-cats.com/api/register', {
+            const response = await fetch('https://mgctv2ve-backend.onrender.com/api/register', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
