@@ -110,7 +110,8 @@ async function showResult(isCorrect) {
                     },
                     body: JSON.stringify({
                         email: data.userInfo.email,
-                        solanaAddress: data.userInfo.solanaAddress
+                        solanaAddress: data.userInfo.solanaAddress,
+                        movieTitle: currentMovie.title
                     })
                 });
 

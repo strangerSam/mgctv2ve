@@ -195,6 +195,59 @@ app.post('/api/increment-score', async (req, res) => {
     try {
         const { email, solanaAddress, movieTitle } = req.body;
         
+        // Ajout de logs pour déboguer
+        console.log('Updating score for:', { email, solanaAddress, movieTitle });
+        
+        const user = await User.findOne({ 
+            email: email,
+            solanaAddress: solanaAddress
+        });
+
+        if (!user) {
+            console.log('User not found');
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        console.log('Current user state:', {
+            correctAnswers: user.correctAnswers,
+            solvedMovies: user.solvedMovies
+        });
+
+        // Vérifier si le film n'a pas déjà été trouvé
+        if (!user.solvedMovies.includes(movieTitle)) {
+            user.correctAnswers += 1;
+            user.solvedMovies.push(movieTitle);
+            await user.save();
+
+            console.log('Updated user state:', {
+                correctAnswers: user.correctAnswers,
+                solvedMovies: user.solvedMovies
+            });
+
+            res.json({ 
+                message: 'Score updated successfully',
+                newScore: user.correctAnswers,
+                solvedMovies: user.solvedMovies
+            });
+        } else {
+            console.log('Movie already solved');
+            res.json({ 
+                message: 'Movie already solved',
+                newScore: user.correctAnswers,
+                solvedMovies: user.solvedMovies
+            });
+        }
+    } catch (error) {
+        console.error('Update score error:', error);
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// pour récupérer le score actuel
+app.get('/api/user-score', async (req, res) => {
+    try {
+        const { email, solanaAddress } = req.query;
+        
         const user = await User.findOne({ 
             email: email,
             solanaAddress: solanaAddress
@@ -204,27 +257,16 @@ app.post('/api/increment-score', async (req, res) => {
             return res.status(404).json({ message: 'User not found' });
         }
 
-        // Vérifier si le film a déjà été trouvé par cet utilisateur
-        if (!user.solvedMovies.includes(movieTitle)) {
-            user.correctAnswers += 1;
-            user.solvedMovies.push(movieTitle);
-            await user.save();
-
-            res.json({ 
-                message: 'Score updated successfully',
-                newScore: user.correctAnswers
-            });
-        } else {
-            res.json({ 
-                message: 'Movie already solved',
-                newScore: user.correctAnswers
-            });
-        }
+        res.json({ 
+            correctAnswers: user.correctAnswers,
+            solvedMovies: user.solvedMovies
+        });
     } catch (error) {
-        console.error('Update score error:', error);
+        console.error('Get score error:', error);
         res.status(500).json({ message: error.message });
     }
 });
+
 
 // Route pour soumettre un utilisateur
 app.post('/api/submit-user', async (req, res) => {
