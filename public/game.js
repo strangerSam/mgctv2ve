@@ -54,12 +54,20 @@ async function validateGuess(guess) {
         const isCorrect = normalizedGuess === normalizedTitle;
 
         if (!isCorrect) {
-            // Incrémenter le compteur seulement si la réponse est fausse
+            // Envoyer la tentative au serveur
             const response = await fetch('https://mgctv2ve-backend.onrender.com/api/attempt', {
                 method: 'POST'
             });
+            
+            if (response.status === 429) {
+                // Rate limit atteint
+                const data = await response.json();
+                displayError(data.error || 'Too many attempts. Please wait before trying again.');
+                return;
+            }
+            
             const data = await response.json();
-            displayAttemptCount(data.attempts);
+            displayAttemptCount(data.attempts, data.remainingAttempts);
         } else {
             // Réinitialiser le compteur si la réponse est correcte
             await fetch('https://mgctv2ve-backend.onrender.com/api/reset-attempts', {
@@ -71,6 +79,7 @@ async function validateGuess(guess) {
         showResult(isCorrect);
     } catch (error) {
         console.error('Error updating attempts:', error);
+        displayError('An error occurred. Please try again later.');
     }
 }
 
@@ -139,7 +148,7 @@ async function showResult(isCorrect) {
     }
 }
 
-function displayAttemptCount(attempts) {
+function displayAttemptCount(attempts, remainingAttempts) {
     let attemptsElement = document.getElementById('attempt-count');
     
     if (!attemptsElement) {
@@ -153,7 +162,11 @@ function displayAttemptCount(attempts) {
         }
     }
     
-    attemptsElement.textContent = `Attempts: ${attempts}`;
+    let message = `Attempts: ${attempts}`;
+    if (typeof remainingAttempts !== 'undefined') {
+        message += ` (${remainingAttempts} remaining this minute)`;
+    }
+    attemptsElement.textContent = message;
 }
 
 document.getElementById('user-form').addEventListener('submit', async (e) => {
@@ -202,3 +215,21 @@ document.getElementById('user-form').addEventListener('submit', async (e) => {
         formContainer.innerHTML = '<div class="error-message">Error submitting information. Please try again later.</div>';
     }
 });
+
+function displayError(message) {
+    let errorElement = document.getElementById('error-message');
+    
+    if (!errorElement) {
+        errorElement = document.createElement('div');
+        errorElement.id = 'error-message';
+        errorElement.className = 'error-message';
+        document.querySelector('.guess-container').appendChild(errorElement);
+    }
+    
+    errorElement.textContent = message;
+    
+    // Faire disparaître le message après 3 secondes
+    setTimeout(() => {
+        errorElement.textContent = '';
+    }, 3000);
+}

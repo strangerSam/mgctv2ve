@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const crypto = require('crypto');
 const transporter = require('./config/emailConfig');
+const rateLimit = require('express-rate-limit');
 
 const app = express();
 
@@ -73,7 +74,7 @@ app.get('/api/daily-movie', async (req, res) => {
 });
 
 // Route pour obtenir/incrémenter les tentatives
-app.post('/api/attempt', async (req, res) => {
+app.post('/api/attempt', attemptLimiter, async (req, res) => {
     const userIP = req.ip;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -91,7 +92,10 @@ app.post('/api/attempt', async (req, res) => {
         attempt.attempts += 1;
         await attempt.save();
         
-        res.json({ attempts: attempt.attempts });
+        res.json({ 
+            attempts: attempt.attempts,
+            remainingAttempts: 5 - attempt.attempts // Ajout du nombre de tentatives restantes
+        });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -114,6 +118,18 @@ app.get('/api/attempt', async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 });
+
+// Configuration du rate limiter pour les tentatives
+const attemptLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 minute
+    max: 5, // limite à 5 tentatives par minute
+    message: { 
+        error: 'Too many attempts. Please wait a minute before trying again.' 
+    },
+    standardHeaders: true, // Retourne les headers `RateLimit-*`
+    legacyHeaders: false, // Désactive les headers `X-RateLimit-*`
+});
+
 
 // Route pour réinitialiser les tentatives
 app.post('/api/reset-attempts', async (req, res) => {
@@ -188,6 +204,17 @@ app.get('/api/check-participation', async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
+});
+
+// Configuration du rate limiter pour les soumissions d'utilisateurs
+const submissionLimiter = rateLimit({
+    windowMs: 24 * 60 * 60 * 1000, // 24 heures
+    max: 1, // Une seule soumission par jour
+    message: { 
+        error: 'You can only submit your information once per day.' 
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
 });
 
 // Route pour incrémenter le score
@@ -269,7 +296,7 @@ app.get('/api/user-score', async (req, res) => {
 
 
 // Route pour soumettre un utilisateur
-app.post('/api/submit-user', async (req, res) => {
+app.post('/api/submit-user', submissionLimiter, async (req, res) => {
     try {
         console.log('--- Début de la soumission ---');
         const { firstName, email, solanaAddress } = req.body;

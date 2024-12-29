@@ -550,6 +550,29 @@ footer {
     background-color: #446966;
 }
 
+.error-message {
+    color: #e74c3c;
+    text-align: center;
+    padding: 10px;
+    margin-top: 10px;
+    border-radius: 5px;
+    font-size: 1rem;
+    animation: fadeIn 0.3s ease-in;
+}
+
+#attempt-count {
+    color: #666;
+    text-align: center;
+    margin-top: 10px;
+    font-size: 0.9rem;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+
 /* Responsive design */
 @media (max-width: 768px) {
     .auth-container {
