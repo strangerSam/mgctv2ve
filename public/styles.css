@@ -624,7 +624,7 @@ footer {
 }
 
 .close-menu-btn {
-    display: none;
+    display: none;  /* Caché par défaut */
     position: absolute;
     top: 20px;
     right: 20px;
@@ -633,6 +633,8 @@ footer {
     color: white;
     font-size: 24px;
     cursor: pointer;
+    padding: 8px;
+    z-index: 1000;
 }
 
 
@@ -644,6 +646,9 @@ footer {
     }
 }
 
+    .nav-links.active .close-menu-btn {
+        display: block;
+    }
 
 
 /* Responsive Design */
@@ -653,9 +658,6 @@ footer {
     }
 }
 
-    .close-menu-btn {
-        display: block;
-    }
 
 @media (max-width: 1024px) {
     .hero {

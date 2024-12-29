@@ -2,10 +2,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const menuToggle = document.querySelector('.menu-toggle');
     const navLinks = document.querySelector('.nav-links');
     
-    // Ajout du bouton de fermeture
+    // Création du bouton de fermeture
     const closeButton = document.createElement('button');
     closeButton.innerHTML = '&times;';
     closeButton.className = 'close-menu-btn';
+    // Ajouter le bouton au début du menu
     navLinks.insertBefore(closeButton, navLinks.firstChild);
     
     menuToggle.addEventListener('click', () => {
