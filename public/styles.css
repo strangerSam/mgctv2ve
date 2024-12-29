@@ -680,33 +680,32 @@ footer {
         margin-bottom: 30px;
     }
 
-    .roadmap-line {
-        left: 30px;
+    /* Cacher les points et lignes de la roadmap en mobile avec !important */
+    .roadmap-section .roadmap-item::after {
+        display: none !important;
     }
-
-    .roadmap-item {
-        justify-content: flex-start;
-        margin-left: 50px;
+    
+    .roadmap-section .roadmap-line {
+        display: none !important;
     }
-
-    .roadmap-item.left,
-    .roadmap-item.right {
-        justify-content: flex-start;
+    
+    .roadmap-section .roadmap-item::before {
+        display: none !important;
     }
-
-    .roadmap-box {
-        width: calc(100% - 120px);
+    
+    /* Ajuster l'espacement des éléments de la roadmap */
+    .roadmap-section .roadmap-box {
+        width: 100%;
+        margin-left: 0;
     }
-
-    .roadmap-item::after {
-        left: 30px;
-    }
-
-    /* Ajustement des traits pour mobile */
-    .roadmap-item.left::before,
-    .roadmap-item.right::before {
-        left: 30px;
-        margin-left: 15px;
+    
+    /* S'assurer que les éléments sont bien alignés */
+    .roadmap-section .roadmap-item.left,
+    .roadmap-section .roadmap-item.right {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
     }
 }
 
