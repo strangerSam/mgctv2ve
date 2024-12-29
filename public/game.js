@@ -3,6 +3,16 @@ let adminCode = '';
 let testMode = false;
 
 document.addEventListener('DOMContentLoaded', async () => {
+    // Enregistrement du Service Worker
+    if ('serviceWorker' in navigator) {
+        try {
+            const registration = await navigator.serviceWorker.register('/sw.js');
+            console.log('Service Worker registered successfully:', registration);
+        } catch (error) {
+            console.error('Service Worker registration failed:', error);
+        }
+    }
+    
     try {
         // Charger le film
         const movieResponse = await fetch('https://mgctv2ve-backend.onrender.com/api/daily-movie');
