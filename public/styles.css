@@ -698,8 +698,10 @@ footer {
         width: calc(100% - 120px);
     }
 
-    .roadmap-item::after {
-        left: 30px;
+    /* Cacher les points de la roadmap en mobile */
+    .roadmap-item::after,
+    .roadmap-line {
+        display: none;
     }
 
     /* Ajustement des traits pour mobile */
@@ -708,6 +710,16 @@ footer {
         left: 30px;
         margin-left: 15px;
     }
+}
+
+/* Ajuster l'espacement des éléments de la roadmap */
+.roadmap-box {
+    width: 100%;
+    margin-left: 0;
+}
+
+.roadmap-item::before {
+    display: none;
 }
 
 @media (max-width: 480px) {
