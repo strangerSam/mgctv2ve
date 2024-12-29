@@ -226,6 +226,23 @@ app.post('/api/increment-score', async (req, res) => {
     }
 });
 
+function isValidSolanaAddress(address) {
+    // Vérification de la longueur standard (44 caractères)
+    if (typeof address !== 'string' || address.length !== 44) {
+        return false;
+    }
+
+    // Vérification du format base58
+    const base58Regex = /^[1-9A-HJ-NP-Za-km-z]+$/;
+    if (!base58Regex.test(address)) {
+        return false;
+    }
+
+    return true;
+}
+
+
+
 app.post('/api/submit-user', submissionLimiter, async (req, res) => {
     try {
         console.log('--- Début de la soumission ---');
@@ -236,6 +253,14 @@ app.post('/api/submit-user', submissionLimiter, async (req, res) => {
         
         console.log('Email soumis:', email);
         console.log('Solana Address soumise:', solanaAddress);
+
+        // Validation de l'adresse Solana
+        if (!isValidSolanaAddress(solanaAddress)) {
+            return res.status(400).json({ 
+                message: 'Invalid Solana address format. Please provide a valid Solana address.',
+                error: 'INVALID_SOLANA_ADDRESS'
+            });
+        }
 
         const existingUser = await User.findOne({
             $or: [
@@ -323,6 +348,7 @@ app.post('/api/submit-user', submissionLimiter, async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 });
+
 
 app.get('/verify-email/:token', async (req, res) => {
     try {
