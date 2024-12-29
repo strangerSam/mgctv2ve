@@ -5,6 +5,7 @@ const cors = require('cors');
 const crypto = require('crypto');
 const transporter = require('./config/emailConfig');
 const rateLimit = require('express-rate-limit');
+const moment = require('moment-timezone');
 
 const app = express();
 
@@ -73,22 +74,67 @@ const Attempt = mongoose.model('Attempt', attemptSchema);
 // Routes
 app.get('/api/daily-movie', async (req, res) => {
     try {
-        const count = await Movie.countDocuments();
-        const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / (1000 * 60 * 60 * 24));
-        const index = dayOfYear % count;
+        // Utiliser moment.js pour une meilleure gestion des fuseaux horaires
+        const parisTime = moment().tz("Europe/Paris");
+        console.log(`Current Paris time: ${parisTime.format()}`);
         
+        // Reset à minuit pour la consistance
+        const currentDate = parisTime.startOf('day');
+        console.log(`Normalized date: ${currentDate.format()}`);
+        
+        const count = await Movie.countDocuments();
+        console.log(`Total movies in database: ${count}`);
+        
+        if (count === 0) {
+            return res.status(404).json({ 
+                message: 'No movies found in database',
+                error: 'EMPTY_DATABASE'
+            });
+        }
+
+        // Calcul du jour de l'année
+        const startOfYear = moment().tz("Europe/Paris").startOf('year');
+        const dayOfYear = currentDate.diff(startOfYear, 'days');
+        console.log(`Day of year: ${dayOfYear}`);
+        
+        const index = dayOfYear % count;
+        console.log(`Selected movie index: ${index}`);
+
         const movie = await Movie.findOne().skip(index);
         
         if (!movie) {
-            return res.status(404).json({ message: 'No movie found' });
+            return res.status(404).json({ 
+                message: 'Movie not found for today',
+                error: 'MOVIE_NOT_FOUND'
+            });
         }
+
+        // Calcul du prochain changement
+        const nextUpdate = parisTime.clone().add(1, 'day').startOf('day');
+        console.log(`Next update scheduled for: ${nextUpdate.format()}`);
+
+        // Ajout du temps restant en minutes
+        const minutesUntilNextUpdate = nextUpdate.diff(parisTime, 'minutes');
         
         res.json({ 
             title: movie.title,
-            screenshot: movie.screenshot
+            screenshot: movie.screenshot,
+            currentTime: parisTime.format(),
+            nextUpdate: nextUpdate.format(),
+            minutesUntilNext: minutesUntilNextUpdate,
+            timeInfo: {
+                currentParis: parisTime.format('HH:mm'),
+                nextChange: nextUpdate.format('YYYY-MM-DD HH:mm'),
+                minutesRemaining: minutesUntilNextUpdate
+            }
         });
+
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        console.error('Error in daily-movie route:', error);
+        res.status(500).json({ 
+            message: 'Internal server error',
+            error: error.message 
+        });
     }
 });
 
@@ -227,12 +273,10 @@ app.post('/api/increment-score', async (req, res) => {
 });
 
 function isValidSolanaAddress(address) {
-    // Vérification de la longueur standard (44 caractères)
     if (typeof address !== 'string' || address.length !== 44) {
         return false;
     }
 
-    // Vérification du format base58
     const base58Regex = /^[1-9A-HJ-NP-Za-km-z]+$/;
     if (!base58Regex.test(address)) {
         return false;
@@ -240,8 +284,6 @@ function isValidSolanaAddress(address) {
 
     return true;
 }
-
-
 
 app.post('/api/submit-user', submissionLimiter, async (req, res) => {
     try {
@@ -254,7 +296,6 @@ app.post('/api/submit-user', submissionLimiter, async (req, res) => {
         console.log('Email soumis:', email);
         console.log('Solana Address soumise:', solanaAddress);
 
-        // Validation de l'adresse Solana
         if (!isValidSolanaAddress(solanaAddress)) {
             return res.status(400).json({ 
                 message: 'Invalid Solana address format. Please provide a valid Solana address.',
@@ -348,7 +389,6 @@ app.post('/api/submit-user', submissionLimiter, async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 });
-
 
 app.get('/verify-email/:token', async (req, res) => {
     try {
