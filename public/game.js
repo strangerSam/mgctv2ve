@@ -1,6 +1,7 @@
 let currentMovie = null;
 let adminCode = '';
 let testMode = false;
+let attemptUpdateInterval = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
     // Enregistrement du Service Worker
@@ -30,9 +31,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         // Charger le nombre de tentatives actuel
-        const attemptResponse = await fetch('https://mgctv2ve-backend.onrender.com/api/attempt');
-        const attemptData = await attemptResponse.json();
-        displayAttemptCount(attemptData.attempts);
+        await updateAttemptDisplay();
+        // Mettre à jour les tentatives toutes les secondes
+        attemptUpdateInterval = setInterval(updateAttemptDisplay, 1000);
 
         const guessInput = document.getElementById('movie-guess');
         guessInput.addEventListener('keypress', function(e) {
@@ -51,6 +52,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     } catch (error) {
         console.error('Error loading game:', error);
+        displayError('Error loading game. Please try again later.');
     }
 });
 
@@ -92,11 +94,33 @@ document.getElementById('test-toggle').addEventListener('click', () => {
     }
 });
 
+async function updateAttemptDisplay() {
+    try {
+        const response = await fetch('https://mgctv2ve-backend.onrender.com/api/attempt');
+        const data = await response.json();
+        
+        if (data.resetTime) {
+            const now = new Date();
+            const resetTime = new Date(data.resetTime);
+            const timeLeft = Math.max(0, Math.ceil((resetTime - now) / 1000));
+            
+            displayAttemptCount(
+                data.attempts,
+                data.remainingAttempts,
+                `${timeLeft} seconds`
+            );
+        } else {
+            displayAttemptCount(data.attempts, data.remainingAttempts);
+        }
+    } catch (error) {
+        console.error('Error updating attempts display:', error);
+    }
+}
+
 async function validateGuess(guess) {
     try {
         const normalizedGuess = guess.trim().toLowerCase();
         const normalizedTitle = currentMovie.title.toLowerCase();
-
         const isCorrect = normalizedGuess === normalizedTitle;
 
         if (!isCorrect) {
@@ -111,11 +135,16 @@ async function validateGuess(guess) {
             }
             
             const data = await response.json();
-            displayAttemptCount(data.attempts, data.remainingAttempts);
+            displayAttemptCount(data.attempts, data.remainingAttempts, data.resetTime);
         } else {
             await fetch('https://mgctv2ve-backend.onrender.com/api/reset-attempts', {
                 method: 'POST'
             });
+            
+            if (attemptUpdateInterval) {
+                clearInterval(attemptUpdateInterval);
+            }
+            
             displayAttemptCount(0);
             
             const response = await fetch(`https://mgctv2ve-backend.onrender.com/api/check-participation?adminCode=${adminCode}&testMode=${testMode}`);
@@ -146,6 +175,32 @@ async function validateGuess(guess) {
         console.error('Error updating attempts:', error);
         displayError('An error occurred. Please try again later.');
     }
+}
+
+function displayAttemptCount(attempts, remainingAttempts, resetTimeStr) {
+    let attemptsElement = document.getElementById('attempt-count');
+    
+    if (!attemptsElement) {
+        attemptsElement = document.createElement('div');
+        attemptsElement.id = 'attempt-count';
+        const resultElement = document.getElementById('guess-result');
+        if (resultElement) {
+            resultElement.parentNode.insertBefore(attemptsElement, resultElement);
+        } else {
+            document.querySelector('.guess-container').appendChild(attemptsElement);
+        }
+    }
+    
+    let message = `Attempts: ${attempts}`;
+    if (remainingAttempts !== undefined) {
+        message += ` (${remainingAttempts} remaining`;
+        if (resetTimeStr) {
+            message += `, resets in ${resetTimeStr}`;
+        }
+        message += ')';
+    }
+    
+    attemptsElement.textContent = message;
 }
 
 function isValidSolanaAddress(address) {
@@ -198,6 +253,23 @@ function removeValidationError(inputElement) {
     }
 }
 
+function displayError(message) {
+    let errorElement = document.getElementById('error-message');
+    
+    if (!errorElement) {
+        errorElement = document.createElement('div');
+        errorElement.id = 'error-message';
+        errorElement.className = 'error-message';
+        document.querySelector('.guess-container').appendChild(errorElement);
+    }
+    
+    errorElement.textContent = message;
+    
+    setTimeout(() => {
+        errorElement.textContent = '';
+    }, 3000);
+}
+
 function showResult(isCorrect) {
     let resultElement = document.getElementById('guess-result');
     
@@ -244,63 +316,6 @@ async function handleCorrectGuess() {
     } catch (error) {
         console.error('Error checking participation:', error);
     }
-}
-
-function displayAttemptCount(attempts, remainingAttempts, resetTime) {
-    let attemptsElement = document.getElementById('attempt-count');
-    
-    if (!attemptsElement) {
-        attemptsElement = document.createElement('div');
-        attemptsElement.id = 'attempt-count';
-        const resultElement = document.getElementById('guess-result');
-        if (resultElement) {
-            resultElement.parentNode.insertBefore(attemptsElement, resultElement);
-        } else {
-            document.querySelector('.guess-container').appendChild(attemptsElement);
-        }
-    }
-    
-    let message = `Attempts: ${attempts}`;
-    if (remainingAttempts !== undefined) {
-        // Si resetTime est fourni, calculer le temps restant
-        if (resetTime) {
-            const timeLeft = new Date(resetTime) - new Date();
-            if (timeLeft > 0) {
-                const secondsLeft = Math.ceil(timeLeft / 1000);
-                message += ` (${remainingAttempts} remaining, resets in ${secondsLeft}s)`;
-            } else {
-                message += ` (${remainingAttempts} remaining)`;
-            }
-        } else {
-            message += ` (${remainingAttempts} remaining)`;
-        }
-    }
-    
-    attemptsElement.textContent = message;
-    
-    // Mettre à jour le message toutes les secondes si un temps de réinitialisation est défini
-    if (resetTime) {
-        setTimeout(() => {
-            displayAttemptCount(attempts, remainingAttempts, resetTime);
-        }, 1000);
-    }
-}
-
-function displayError(message) {
-    let errorElement = document.getElementById('error-message');
-    
-    if (!errorElement) {
-        errorElement = document.createElement('div');
-        errorElement.id = 'error-message';
-        errorElement.className = 'error-message';
-        document.querySelector('.guess-container').appendChild(errorElement);
-    }
-    
-    errorElement.textContent = message;
-    
-    setTimeout(() => {
-        errorElement.textContent = '';
-    }, 3000);
 }
 
 document.getElementById('user-form').addEventListener('submit', async (e) => {

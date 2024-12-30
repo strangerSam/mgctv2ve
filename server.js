@@ -74,16 +74,9 @@ const Attempt = mongoose.model('Attempt', attemptSchema);
 // Routes
 app.get('/api/daily-movie', async (req, res) => {
     try {
-        // Utiliser moment.js pour une meilleure gestion des fuseaux horaires
         const parisTime = moment().tz("Europe/Paris");
-        console.log(`Current Paris time: ${parisTime.format()}`);
-        
-        // Reset à minuit pour la consistance
         const currentDate = parisTime.startOf('day');
-        console.log(`Normalized date: ${currentDate.format()}`);
-        
         const count = await Movie.countDocuments();
-        console.log(`Total movies in database: ${count}`);
         
         if (count === 0) {
             return res.status(404).json({ 
@@ -92,14 +85,9 @@ app.get('/api/daily-movie', async (req, res) => {
             });
         }
 
-        // Calcul du jour de l'année
         const startOfYear = moment().tz("Europe/Paris").startOf('year');
         const dayOfYear = currentDate.diff(startOfYear, 'days');
-        console.log(`Day of year: ${dayOfYear}`);
-        
         const index = dayOfYear % count;
-        console.log(`Selected movie index: ${index}`);
-
         const movie = await Movie.findOne().skip(index);
         
         if (!movie) {
@@ -109,11 +97,7 @@ app.get('/api/daily-movie', async (req, res) => {
             });
         }
 
-        // Calcul du prochain changement
         const nextUpdate = parisTime.clone().add(1, 'day').startOf('day');
-        console.log(`Next update scheduled for: ${nextUpdate.format()}`);
-
-        // Ajout du temps restant en minutes
         const minutesUntilNextUpdate = nextUpdate.diff(parisTime, 'minutes');
         
         res.json({ 
@@ -178,41 +162,36 @@ app.post('/api/attempt', attemptLimiter, async (req, res) => {
     }
 });
 
-app.post('/api/attempt', attemptLimiter, async (req, res) => {
+// Route pour obtenir le nombre de tentatives actuelles
+app.get('/api/attempt', async (req, res) => {
     const userIP = req.ip;
     const now = new Date();
-    const oneMinuteAgo = new Date(now - 60000); // 1 minute ago
+    const oneMinuteAgo = new Date(now - 60000);
     
     try {
-        // Rechercher ou créer une tentative pour cet IP
-        let attempt = await Attempt.findOne({
+        const attempt = await Attempt.findOne({
             userIP,
             date: { $gte: oneMinuteAgo }
         });
         
         if (!attempt) {
-            attempt = new Attempt({ 
-                userIP,
-                date: now,
-                attempts: 0 
+            return res.json({ 
+                attempts: 0,
+                remainingAttempts: 5,
+                resetTime: null
             });
         }
         
-        // Incrémenter le compteur
-        attempt.attempts += 1;
-        attempt.date = now;
-        await attempt.save();
-        
-        // Calculer les tentatives restantes
         const remainingAttempts = Math.max(0, 5 - attempt.attempts);
+        const resetTime = new Date(attempt.date.getTime() + 60000);
         
         res.json({ 
             attempts: attempt.attempts,
             remainingAttempts,
-            resetTime: new Date(now.getTime() + 60000).toISOString()
+            resetTime: resetTime.toISOString()
         });
     } catch (error) {
-        console.error('Erreur lors du traitement de la tentative:', error);
+        console.error('Erreur lors de la récupération des tentatives:', error);
         res.status(500).json({ message: error.message });
     }
 });
@@ -268,15 +247,12 @@ app.post('/api/increment-score', async (req, res) => {
     try {
         const { email, solanaAddress, movieTitle } = req.body;
         
-        console.log('Updating score for:', { email, solanaAddress, movieTitle });
-        
         const user = await User.findOne({ 
             email: email,
             solanaAddress: solanaAddress
         });
 
         if (!user) {
-            console.log('User not found');
             return res.status(404).json({ message: 'User not found' });
         }
 
@@ -318,14 +294,10 @@ function isValidSolanaAddress(address) {
 
 app.post('/api/submit-user', submissionLimiter, async (req, res) => {
     try {
-        console.log('--- Début de la soumission ---');
         const { firstName, email, solanaAddress } = req.body;
         const userIP = req.ip;
         const adminCode = req.headers['admin-code'];
         const testMode = req.headers['test-mode'] === 'true';
-        
-        console.log('Email soumis:', email);
-        console.log('Solana Address soumise:', solanaAddress);
 
         if (!isValidSolanaAddress(solanaAddress)) {
             return res.status(400).json({ 
