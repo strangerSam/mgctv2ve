@@ -13,92 +13,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // Création du composant de compte à rebours
-    const NextMovieCountdown = () => {
-        const [timeLeft, setTimeLeft] = React.useState({
-            hours: 0,
-            minutes: 0,
-            seconds: 0
-        });
-        const [nextUpdateTime, setNextUpdateTime] = React.useState('');
-
-        React.useEffect(() => {
-            const fetchTimeInfo = async () => {
-                try {
-                    const response = await fetch('https://mgctv2ve-backend.onrender.com/api/daily-movie');
-                    const data = await response.json();
-                    
-                    if (data.timeInfo) {
-                        setNextUpdateTime(data.timeInfo.nextChange);
-                        updateCountdown(new Date(data.timeInfo.nextChange));
-                    }
-                } catch (error) {
-                    console.error('Error fetching time info:', error);
-                }
-            };
-
-            const updateCountdown = (nextUpdate) => {
-                const now = new Date();
-                const timeDiff = nextUpdate - now;
-
-                if (timeDiff > 0) {
-                    const hours = Math.floor((timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                    const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
-                    const seconds = Math.floor((timeDiff % (1000 * 60)) / 1000);
-
-                    setTimeLeft({ hours, minutes, seconds });
-                } else {
-                    fetchTimeInfo();
-                }
-            };
-
-            fetchTimeInfo();
-
-            const timer = setInterval(() => {
-                if (nextUpdateTime) {
-                    updateCountdown(new Date(nextUpdateTime));
-                }
-            }, 1000);
-
-            return () => clearInterval(timer);
-        }, [nextUpdateTime]);
-
-        return (
-            <div className="bg-gradient-to-r from-blue-900/50 to-purple-900/50 rounded-lg p-4 shadow-lg">
-                <div className="flex items-center justify-center gap-2 mb-2">
-                    <h3 className="text-lg font-semibold text-white">Prochain film dans :</h3>
-                </div>
-                
-                <div className="grid grid-cols-3 gap-2 text-center">
-                    <div className="bg-gray-800/50 rounded p-2">
-                        <div className="text-2xl font-bold text-blue-400">
-                            {String(timeLeft.hours).padStart(2, '0')}
-                        </div>
-                        <div className="text-xs text-gray-400">Heures</div>
-                    </div>
-                    
-                    <div className="bg-gray-800/50 rounded p-2">
-                        <div className="text-2xl font-bold text-blue-400">
-                            {String(timeLeft.minutes).padStart(2, '0')}
-                        </div>
-                        <div className="text-xs text-gray-400">Minutes</div>
-                    </div>
-                    
-                    <div className="bg-gray-800/50 rounded p-2">
-                        <div className="text-2xl font-bold text-blue-400">
-                            {String(timeLeft.seconds).padStart(2, '0')}
-                        </div>
-                        <div className="text-xs text-gray-400">Secondes</div>
-                    </div>
-                </div>
-                
-                <div className="text-center mt-2 text-sm text-gray-400">
-                    Prochain film à minuit
-                </div>
-            </div>
-        );
-    };
-
     try {
         // Charger le film
         const movieResponse = await fetch('https://mgctv2ve-backend.onrender.com/api/daily-movie');
@@ -108,10 +22,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         imageElement.src = currentMovie.screenshot;
         imageElement.alt = `Screenshot from movie`;
 
-        // Monter le composant de compte à rebours
+        // Initialiser le compte à rebours
         const countdownContainer = document.getElementById('countdown-container');
         if (countdownContainer) {
-            ReactDOM.createRoot(countdownContainer).render(<NextMovieCountdown />);
+            updateCountdown();
+            setInterval(updateCountdown, 1000);
         }
 
         // Charger le nombre de tentatives actuel
@@ -138,6 +53,55 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.error('Error loading game:', error);
     }
 });
+
+function updateCountdown() {
+    const countdownContainer = document.getElementById('countdown-container');
+    if (!countdownContainer) return;
+
+    const now = new Date();
+    const midnight = new Date();
+    midnight.setHours(24, 0, 0, 0);
+    const timeLeft = midnight - now;
+
+    const hours = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+
+    countdownContainer.innerHTML = `
+        <div class="bg-gradient-to-r from-blue-900/50 to-purple-900/50 rounded-lg p-4 shadow-lg">
+            <div class="flex items-center justify-center gap-2 mb-2">
+                <h3 class="text-lg font-semibold text-white">Prochain film dans :</h3>
+            </div>
+            
+            <div class="grid grid-cols-3 gap-2 text-center">
+                <div class="bg-gray-800/50 rounded p-2">
+                    <div class="text-2xl font-bold text-blue-400">
+                        ${String(hours).padStart(2, '0')}
+                    </div>
+                    <div class="text-xs text-gray-400">Heures</div>
+                </div>
+                
+                <div class="bg-gray-800/50 rounded p-2">
+                    <div class="text-2xl font-bold text-blue-400">
+                        ${String(minutes).padStart(2, '0')}
+                    </div>
+                    <div class="text-xs text-gray-400">Minutes</div>
+                </div>
+                
+                <div class="bg-gray-800/50 rounded p-2">
+                    <div class="text-2xl font-bold text-blue-400">
+                        ${String(seconds).padStart(2, '0')}
+                    </div>
+                    <div class="text-xs text-gray-400">Secondes</div>
+                </div>
+            </div>
+            
+            <div class="text-center mt-2 text-sm text-gray-400">
+                Prochain film à minuit
+            </div>
+        </div>
+    `;
+}
 
 // Mode Admin et Test
 document.getElementById('admin-toggle').addEventListener('click', () => {
