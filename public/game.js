@@ -68,31 +68,8 @@ function updateCountdown() {
     const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
 
     countdownContainer.innerHTML = `
-        <div class="countdown-box">
-            <div class="countdown-header">
-                <h3>Prochain film dans :</h3>
-            </div>
-            
-            <div class="countdown-grid">
-                <div class="time-box">
-                    <div class="time-value">${String(hours).padStart(2, '0')}</div>
-                    <div class="time-label">Heures</div>
-                </div>
-                
-                <div class="time-box">
-                    <div class="time-value">${String(minutes).padStart(2, '0')}</div>
-                    <div class="time-label">Minutes</div>
-                </div>
-                
-                <div class="time-box">
-                    <div class="time-value">${String(seconds).padStart(2, '0')}</div>
-                    <div class="time-label">Secondes</div>
-                </div>
-            </div>
-            
-            <div class="countdown-footer">
-                Prochain film à minuit
-            </div>
+        <div class="countdown-simple">
+            ${String(hours).padStart(2, '0')} : ${String(minutes).padStart(2, '0')} : ${String(seconds).padStart(2, '0')}
         </div>
     `;
 }
