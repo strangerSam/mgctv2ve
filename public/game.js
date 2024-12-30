@@ -68,35 +68,29 @@ function updateCountdown() {
     const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
 
     countdownContainer.innerHTML = `
-        <div class="bg-gradient-to-r from-blue-900/50 to-purple-900/50 rounded-lg p-4 shadow-lg">
-            <div class="flex items-center justify-center gap-2 mb-2">
-                <h3 class="text-lg font-semibold text-white">Prochain film dans :</h3>
+        <div class="countdown-box">
+            <div class="countdown-header">
+                <h3>Prochain film dans :</h3>
             </div>
             
-            <div class="grid grid-cols-3 gap-2 text-center">
-                <div class="bg-gray-800/50 rounded p-2">
-                    <div class="text-2xl font-bold text-blue-400">
-                        ${String(hours).padStart(2, '0')}
-                    </div>
-                    <div class="text-xs text-gray-400">Heures</div>
+            <div class="countdown-grid">
+                <div class="time-box">
+                    <div class="time-value">${String(hours).padStart(2, '0')}</div>
+                    <div class="time-label">Heures</div>
                 </div>
                 
-                <div class="bg-gray-800/50 rounded p-2">
-                    <div class="text-2xl font-bold text-blue-400">
-                        ${String(minutes).padStart(2, '0')}
-                    </div>
-                    <div class="text-xs text-gray-400">Minutes</div>
+                <div class="time-box">
+                    <div class="time-value">${String(minutes).padStart(2, '0')}</div>
+                    <div class="time-label">Minutes</div>
                 </div>
                 
-                <div class="bg-gray-800/50 rounded p-2">
-                    <div class="text-2xl font-bold text-blue-400">
-                        ${String(seconds).padStart(2, '0')}
-                    </div>
-                    <div class="text-xs text-gray-400">Secondes</div>
+                <div class="time-box">
+                    <div class="time-value">${String(seconds).padStart(2, '0')}</div>
+                    <div class="time-label">Secondes</div>
                 </div>
             </div>
             
-            <div class="text-center mt-2 text-sm text-gray-400">
+            <div class="countdown-footer">
                 Prochain film à minuit
             </div>
         </div>
