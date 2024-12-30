@@ -14,7 +14,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
-// Configuration du rate limiter uniquement pour les soumissions
+// Configuration du rate limiter pour les soumissions
 const submissionLimiter = rateLimit({
     windowMs: 24 * 60 * 60 * 1000, // 24 heures
     max: 1, // Une seule soumission par jour
@@ -52,14 +52,6 @@ const userSchema = new mongoose.Schema({
 }, { collection: 'users' });
 
 const User = mongoose.model('User', userSchema);
-
-const attemptSchema = new mongoose.Schema({
-    userIP: String,
-    date: { type: Date, default: Date.now },
-    attempts: { type: Number, default: 0 }
-});
-
-const Attempt = mongoose.model('Attempt', attemptSchema);
 
 // Routes
 app.get('/api/daily-movie', async (req, res) => {
@@ -109,76 +101,6 @@ app.get('/api/daily-movie', async (req, res) => {
             message: 'Internal server error',
             error: error.message 
         });
-    }
-});
-
-// Route pour les tentatives
-app.post('/api/attempt', async (req, res) => {
-    const userIP = req.ip;
-    try {
-        // On cherche une tentative existante pour aujourd'hui
-        let attempt = await Attempt.findOne({
-            userIP,
-            date: {
-                $gte: new Date().setHours(0, 0, 0, 0),
-                $lt: new Date().setHours(23, 59, 59, 999)
-            }
-        });
-        
-        // Si aucune tentative n'existe, on en crée une nouvelle
-        if (!attempt) {
-            attempt = new Attempt({
-                userIP,
-                attempts: 0,
-                date: new Date()
-            });
-        }
-        
-        // Incrémenter le compteur
-        attempt.attempts += 1;
-        await attempt.save();
-        
-        res.json({ attempts: attempt.attempts });
-    } catch (error) {
-        console.error('Erreur tentative:', error);
-        res.status(500).json({ message: error.message });
-    }
-});
-
-// Route pour obtenir le nombre actuel de tentatives
-app.get('/api/attempt', async (req, res) => {
-    const userIP = req.ip;
-    try {
-        const attempt = await Attempt.findOne({
-            userIP,
-            date: {
-                $gte: new Date().setHours(0, 0, 0, 0),
-                $lt: new Date().setHours(23, 59, 59, 999)
-            }
-        });
-        
-        res.json({ attempts: attempt ? attempt.attempts : 0 });
-    } catch (error) {
-        console.error('Erreur récupération tentatives:', error);
-        res.status(500).json({ message: error.message });
-    }
-});
-
-// Réinitialiser les tentatives
-app.post('/api/reset-attempts', async (req, res) => {
-    const userIP = req.ip;
-    try {
-        await Attempt.deleteMany({
-            userIP,
-            date: {
-                $gte: new Date().setHours(0, 0, 0, 0),
-                $lt: new Date().setHours(23, 59, 59, 999)
-            }
-        });
-        res.json({ message: 'Attempts reset successfully' });
-    } catch (error) {
-        console.error('Erreur réinitialisation tentatives:', error);
-        res.status(500).json({ message: error.message });
     }
 });
 
@@ -258,11 +180,7 @@ function isValidSolanaAddress(address) {
     }
 
     const base58Regex = /^[1-9A-HJ-NP-Za-km-z]+$/;
-    if (!base58Regex.test(address)) {
-        return false;
-    }
-
-    return true;
+    return base58Regex.test(address);
 }
 
 app.post('/api/submit-user', submissionLimiter, async (req, res) => {
