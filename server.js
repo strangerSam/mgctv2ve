@@ -112,62 +112,72 @@ app.get('/api/daily-movie', async (req, res) => {
     }
 });
 
-// Route pour les tentatives (sans rate limiting)
+// Route pour les tentatives
 app.post('/api/attempt', async (req, res) => {
     const userIP = req.ip;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
     try {
+        // On cherche une tentative existante pour aujourd'hui
         let attempt = await Attempt.findOne({
             userIP,
-            date: { $gte: today }
+            date: {
+                $gte: new Date().setHours(0, 0, 0, 0),
+                $lt: new Date().setHours(23, 59, 59, 999)
+            }
         });
         
+        // Si aucune tentative n'existe, on en crée une nouvelle
         if (!attempt) {
-            attempt = new Attempt({ userIP });
+            attempt = new Attempt({
+                userIP,
+                attempts: 0,
+                date: new Date()
+            });
         }
         
+        // Incrémenter le compteur
         attempt.attempts += 1;
         await attempt.save();
         
         res.json({ attempts: attempt.attempts });
     } catch (error) {
-        console.error('Erreur lors du traitement de la tentative:', error);
+        console.error('Erreur tentative:', error);
         res.status(500).json({ message: error.message });
     }
 });
 
-// Route pour obtenir le nombre de tentatives
+// Route pour obtenir le nombre actuel de tentatives
 app.get('/api/attempt', async (req, res) => {
     const userIP = req.ip;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
     try {
         const attempt = await Attempt.findOne({
             userIP,
-            date: { $gte: today }
+            date: {
+                $gte: new Date().setHours(0, 0, 0, 0),
+                $lt: new Date().setHours(23, 59, 59, 999)
+            }
         });
         
-        res.json({ 
-            attempts: attempt ? attempt.attempts : 0
-        });
+        res.json({ attempts: attempt ? attempt.attempts : 0 });
     } catch (error) {
-        console.error('Erreur lors de la récupération des tentatives:', error);
+        console.error('Erreur récupération tentatives:', error);
         res.status(500).json({ message: error.message });
     }
 });
 
+// Réinitialiser les tentatives
 app.post('/api/reset-attempts', async (req, res) => {
     const userIP = req.ip;
     try {
-        await Attempt.deleteOne({
+        await Attempt.deleteMany({
             userIP,
-            date: { $gte: new Date().setHours(0,0,0,0) }
+            date: {
+                $gte: new Date().setHours(0, 0, 0, 0),
+                $lt: new Date().setHours(23, 59, 59, 999)
+            }
         });
         res.json({ message: 'Attempts reset successfully' });
     } catch (error) {
+        console.error('Erreur réinitialisation tentatives:', error);
         res.status(500).json({ message: error.message });
     }
 });

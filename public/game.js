@@ -93,30 +93,56 @@ document.getElementById('test-toggle').addEventListener('click', () => {
     }
 });
 
+// Fonction d'affichage du nombre de tentatives
+function displayAttemptCount(attempts) {
+    let attemptsElement = document.getElementById('attempt-count');
+    
+    if (!attemptsElement) {
+        attemptsElement = document.createElement('div');
+        attemptsElement.id = 'attempt-count';
+        const guessContainer = document.querySelector('.guess-container');
+        const guessInput = guessContainer.querySelector('.guess-input');
+        guessContainer.insertBefore(attemptsElement, guessInput);
+    }
+    
+    attemptsElement.textContent = `Attempts: ${attempts}`;
+}
+
+// Fonction de validation de la réponse
 async function validateGuess(guess) {
+    if (!guess.trim()) return; // Ignorer les réponses vides
+
     try {
         const normalizedGuess = guess.trim().toLowerCase();
         const normalizedTitle = currentMovie.title.toLowerCase();
         const isCorrect = normalizedGuess === normalizedTitle;
 
         if (!isCorrect) {
+            // Incrémenter le compteur de tentatives
             const response = await fetch('https://mgctv2ve-backend.onrender.com/api/attempt', {
                 method: 'POST'
             });
             
+            if (!response.ok) {
+                throw new Error('Failed to update attempts');
+            }
+            
             const data = await response.json();
             displayAttemptCount(data.attempts);
         } else {
+            // Réinitialiser les tentatives en cas de bonne réponse
             await fetch('https://mgctv2ve-backend.onrender.com/api/reset-attempts', {
                 method: 'POST'
             });
             
             displayAttemptCount(0);
             
+            // Vérifier la participation
             const response = await fetch(`https://mgctv2ve-backend.onrender.com/api/check-participation?adminCode=${adminCode}&testMode=${testMode}`);
             const data = await response.json();
 
             if (data.hasParticipated && data.userInfo) {
+                // Mettre à jour le score
                 const scoreResponse = await fetch('https://mgctv2ve-backend.onrender.com/api/increment-score', {
                     method: 'POST',
                     headers: {
@@ -138,26 +164,9 @@ async function validateGuess(guess) {
 
         showResult(isCorrect);
     } catch (error) {
-        console.error('Error updating attempts:', error);
+        console.error('Error:', error);
         displayError('An error occurred. Please try again later.');
     }
-}
-
-function displayAttemptCount(attempts) {
-    let attemptsElement = document.getElementById('attempt-count');
-    
-    if (!attemptsElement) {
-        attemptsElement = document.createElement('div');
-        attemptsElement.id = 'attempt-count';
-        const resultElement = document.getElementById('guess-result');
-        if (resultElement) {
-            resultElement.parentNode.insertBefore(attemptsElement, resultElement);
-        } else {
-            document.querySelector('.guess-container').appendChild(attemptsElement);
-        }
-    }
-    
-    attemptsElement.textContent = `Attempts: ${attempts}`;
 }
 
 function isValidSolanaAddress(address) {
