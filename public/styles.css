@@ -637,6 +637,7 @@ footer {
     z-index: 1000;
 }
 
+/* Dans styles.css, ajout pour le texte */
 #countdown-container {
     margin: 20px auto;
     text-align: center;
@@ -653,6 +654,13 @@ footer {
     padding: 10px 20px;
     border-radius: 25px;
     margin: 0 auto;
+}
+
+.countdown-title {
+    color: black;
+    font-size: 18px;
+    margin-bottom: 5px;
+    font-family: 'Happy Monkey', cursive;
 }
 
 /* Responsive design */

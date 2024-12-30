@@ -68,6 +68,7 @@ function updateCountdown() {
     const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
 
     countdownContainer.innerHTML = `
+        <div class="countdown-title">Next movie in</div>
         <div class="countdown-simple">
             ${String(hours).padStart(2, '0')} : ${String(minutes).padStart(2, '0')} : ${String(seconds).padStart(2, '0')}
         </div>
