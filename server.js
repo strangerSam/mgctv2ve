@@ -141,47 +141,78 @@ app.get('/api/daily-movie', async (req, res) => {
 // Route pour les tentatives avec rate limiting
 app.post('/api/attempt', attemptLimiter, async (req, res) => {
     const userIP = req.ip;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const now = new Date();
+    const oneMinuteAgo = new Date(now - 60000); // 1 minute ago
     
     try {
+        // Rechercher ou créer une tentative pour cet IP
         let attempt = await Attempt.findOne({
             userIP,
-            date: { $gte: today }
+            date: { $gte: oneMinuteAgo }
         });
         
         if (!attempt) {
-            attempt = new Attempt({ userIP });
+            attempt = new Attempt({ 
+                userIP,
+                date: now,
+                attempts: 0 
+            });
         }
         
+        // Incrémenter le compteur
         attempt.attempts += 1;
+        attempt.date = now;
         await attempt.save();
+        
+        // Calculer les tentatives restantes
+        const remainingAttempts = Math.max(0, 5 - attempt.attempts);
         
         res.json({ 
             attempts: attempt.attempts,
-            remainingAttempts: Math.max(0, 5 - attempt.attempts)
+            remainingAttempts,
+            resetTime: new Date(now.getTime() + 60000).toISOString()
         });
     } catch (error) {
+        console.error('Erreur lors du traitement de la tentative:', error);
         res.status(500).json({ message: error.message });
     }
 });
 
-app.get('/api/attempt', async (req, res) => {
+app.post('/api/attempt', attemptLimiter, async (req, res) => {
     const userIP = req.ip;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const now = new Date();
+    const oneMinuteAgo = new Date(now - 60000); // 1 minute ago
     
     try {
-        const attempt = await Attempt.findOne({
+        // Rechercher ou créer une tentative pour cet IP
+        let attempt = await Attempt.findOne({
             userIP,
-            date: { $gte: today }
+            date: { $gte: oneMinuteAgo }
         });
         
+        if (!attempt) {
+            attempt = new Attempt({ 
+                userIP,
+                date: now,
+                attempts: 0 
+            });
+        }
+        
+        // Incrémenter le compteur
+        attempt.attempts += 1;
+        attempt.date = now;
+        await attempt.save();
+        
+        // Calculer les tentatives restantes
+        const remainingAttempts = Math.max(0, 5 - attempt.attempts);
+        
         res.json({ 
-            attempts: attempt ? attempt.attempts : 0,
-            remainingAttempts: attempt ? Math.max(0, 5 - attempt.attempts) : 5
+            attempts: attempt.attempts,
+            remainingAttempts,
+            resetTime: new Date(now.getTime() + 60000).toISOString()
         });
     } catch (error) {
+        console.error('Erreur lors du traitement de la tentative:', error);
         res.status(500).json({ message: error.message });
     }
 });

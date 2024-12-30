@@ -246,7 +246,7 @@ async function handleCorrectGuess() {
     }
 }
 
-function displayAttemptCount(attempts, remainingAttempts) {
+function displayAttemptCount(attempts, remainingAttempts, resetTime) {
     let attemptsElement = document.getElementById('attempt-count');
     
     if (!attemptsElement) {
@@ -261,10 +261,29 @@ function displayAttemptCount(attempts, remainingAttempts) {
     }
     
     let message = `Attempts: ${attempts}`;
-    if (typeof remainingAttempts !== 'undefined') {
-        message += ` (${remainingAttempts} remaining this minute)`;
+    if (remainingAttempts !== undefined) {
+        // Si resetTime est fourni, calculer le temps restant
+        if (resetTime) {
+            const timeLeft = new Date(resetTime) - new Date();
+            if (timeLeft > 0) {
+                const secondsLeft = Math.ceil(timeLeft / 1000);
+                message += ` (${remainingAttempts} remaining, resets in ${secondsLeft}s)`;
+            } else {
+                message += ` (${remainingAttempts} remaining)`;
+            }
+        } else {
+            message += ` (${remainingAttempts} remaining)`;
+        }
     }
+    
     attemptsElement.textContent = message;
+    
+    // Mettre à jour le message toutes les secondes si un temps de réinitialisation est défini
+    if (resetTime) {
+        setTimeout(() => {
+            displayAttemptCount(attempts, remainingAttempts, resetTime);
+        }, 1000);
+    }
 }
 
 function displayError(message) {
