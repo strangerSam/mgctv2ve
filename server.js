@@ -14,17 +14,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
-// Configuration des rate limiters
-const attemptLimiter = rateLimit({
-    windowMs: 60 * 1000, // 1 minute
-    max: 5, // limite à 5 tentatives par minute
-    message: { 
-        error: 'Too many attempts. Please wait a minute before trying again.' 
-    },
-    standardHeaders: true,
-    legacyHeaders: false,
-});
-
+// Configuration du rate limiter uniquement pour les soumissions
 const submissionLimiter = rateLimit({
     windowMs: 24 * 60 * 60 * 1000, // 24 heures
     max: 1, // Une seule soumission par jour
@@ -122,73 +112,46 @@ app.get('/api/daily-movie', async (req, res) => {
     }
 });
 
-// Route pour les tentatives avec rate limiting
-app.post('/api/attempt', attemptLimiter, async (req, res) => {
+// Route pour les tentatives (sans rate limiting)
+app.post('/api/attempt', async (req, res) => {
     const userIP = req.ip;
-    const now = new Date();
-    const oneMinuteAgo = new Date(now - 60000); // 1 minute ago
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     
     try {
-        // Rechercher ou créer une tentative pour cet IP
         let attempt = await Attempt.findOne({
             userIP,
-            date: { $gte: oneMinuteAgo }
+            date: { $gte: today }
         });
         
         if (!attempt) {
-            attempt = new Attempt({ 
-                userIP,
-                date: now,
-                attempts: 0 
-            });
+            attempt = new Attempt({ userIP });
         }
         
-        // Incrémenter le compteur
         attempt.attempts += 1;
-        attempt.date = now;
         await attempt.save();
         
-        // Calculer les tentatives restantes
-        const remainingAttempts = Math.max(0, 5 - attempt.attempts);
-        
-        res.json({ 
-            attempts: attempt.attempts,
-            remainingAttempts,
-            resetTime: new Date(now.getTime() + 60000).toISOString()
-        });
+        res.json({ attempts: attempt.attempts });
     } catch (error) {
         console.error('Erreur lors du traitement de la tentative:', error);
         res.status(500).json({ message: error.message });
     }
 });
 
-// Route pour obtenir le nombre de tentatives actuelles
+// Route pour obtenir le nombre de tentatives
 app.get('/api/attempt', async (req, res) => {
     const userIP = req.ip;
-    const now = new Date();
-    const oneMinuteAgo = new Date(now - 60000);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     
     try {
         const attempt = await Attempt.findOne({
             userIP,
-            date: { $gte: oneMinuteAgo }
+            date: { $gte: today }
         });
         
-        if (!attempt) {
-            return res.json({ 
-                attempts: 0,
-                remainingAttempts: 5,
-                resetTime: null
-            });
-        }
-        
-        const remainingAttempts = Math.max(0, 5 - attempt.attempts);
-        const resetTime = new Date(attempt.date.getTime() + 60000);
-        
         res.json({ 
-            attempts: attempt.attempts,
-            remainingAttempts,
-            resetTime: resetTime.toISOString()
+            attempts: attempt ? attempt.attempts : 0
         });
     } catch (error) {
         console.error('Erreur lors de la récupération des tentatives:', error);

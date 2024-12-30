@@ -1,7 +1,6 @@
 let currentMovie = null;
 let adminCode = '';
 let testMode = false;
-let attemptUpdateInterval = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
     // Enregistrement du Service Worker
@@ -31,9 +30,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         // Charger le nombre de tentatives actuel
-        await updateAttemptDisplay();
-        // Mettre à jour les tentatives toutes les secondes
-        attemptUpdateInterval = setInterval(updateAttemptDisplay, 1000);
+        const attemptResponse = await fetch('https://mgctv2ve-backend.onrender.com/api/attempt');
+        const attemptData = await attemptResponse.json();
+        displayAttemptCount(attemptData.attempts);
 
         const guessInput = document.getElementById('movie-guess');
         guessInput.addEventListener('keypress', function(e) {
@@ -94,29 +93,6 @@ document.getElementById('test-toggle').addEventListener('click', () => {
     }
 });
 
-async function updateAttemptDisplay() {
-    try {
-        const response = await fetch('https://mgctv2ve-backend.onrender.com/api/attempt');
-        const data = await response.json();
-        
-        if (data.resetTime) {
-            const now = new Date();
-            const resetTime = new Date(data.resetTime);
-            const timeLeft = Math.max(0, Math.ceil((resetTime - now) / 1000));
-            
-            displayAttemptCount(
-                data.attempts,
-                data.remainingAttempts,
-                `${timeLeft} seconds`
-            );
-        } else {
-            displayAttemptCount(data.attempts, data.remainingAttempts);
-        }
-    } catch (error) {
-        console.error('Error updating attempts display:', error);
-    }
-}
-
 async function validateGuess(guess) {
     try {
         const normalizedGuess = guess.trim().toLowerCase();
@@ -128,22 +104,12 @@ async function validateGuess(guess) {
                 method: 'POST'
             });
             
-            if (response.status === 429) {
-                const data = await response.json();
-                displayError(data.error || 'Too many attempts. Please wait before trying again.');
-                return;
-            }
-            
             const data = await response.json();
-            displayAttemptCount(data.attempts, data.remainingAttempts, data.resetTime);
+            displayAttemptCount(data.attempts);
         } else {
             await fetch('https://mgctv2ve-backend.onrender.com/api/reset-attempts', {
                 method: 'POST'
             });
-            
-            if (attemptUpdateInterval) {
-                clearInterval(attemptUpdateInterval);
-            }
             
             displayAttemptCount(0);
             
@@ -177,7 +143,7 @@ async function validateGuess(guess) {
     }
 }
 
-function displayAttemptCount(attempts, remainingAttempts, resetTimeStr) {
+function displayAttemptCount(attempts) {
     let attemptsElement = document.getElementById('attempt-count');
     
     if (!attemptsElement) {
@@ -191,16 +157,7 @@ function displayAttemptCount(attempts, remainingAttempts, resetTimeStr) {
         }
     }
     
-    let message = `Attempts: ${attempts}`;
-    if (remainingAttempts !== undefined) {
-        message += ` (${remainingAttempts} remaining`;
-        if (resetTimeStr) {
-            message += `, resets in ${resetTimeStr}`;
-        }
-        message += ')';
-    }
-    
-    attemptsElement.textContent = message;
+    attemptsElement.textContent = `Attempts: ${attempts}`;
 }
 
 function isValidSolanaAddress(address) {
