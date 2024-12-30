@@ -638,17 +638,21 @@ footer {
 }
 
 #countdown-container {
-    margin-top: 20px;
+    margin: 20px auto;
+    text-align: center;
+    padding: 10px;
     max-width: 400px;
-    margin-left: auto;
-    margin-right: auto;
 }
+
 .countdown-simple {
     text-align: center;
-    margin: 20px 0;
     font-size: 24px;
     color: black;
     font-family: 'Happy Monkey', cursive;
+    background-color: white;
+    padding: 10px 20px;
+    border-radius: 25px;
+    margin: 0 auto;
 }
 
 /* Responsive design */
