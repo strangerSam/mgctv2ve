@@ -192,9 +192,15 @@ async function handleCorrectGuess() {
 async function handleFormSubmit(e) {
     e.preventDefault();
     
+    // Vérifier si le wallet est connecté
+    if (!window.walletManager?.publicKey) {
+        console.error('No wallet connected');
+        return;
+    }
+    
     const formData = {
         email: e.target.email.value.trim(),
-        solanaAddress: window.walletManager.publicKey
+        solanaAddress: window.walletManager.publicKey // Utilisez directement la publicKey du wallet
     };
 
     try {
@@ -224,8 +230,10 @@ async function handleFormSubmit(e) {
                     ? data.message 
                     : 'Information submitted successfully! Thank you for participating.'}
             </div>`;
+            console.log('Success:', data);
         } else {
-            formContainer.innerHTML = `<div class="error-message">${data.message}</div>`;
+            formContainer.innerHTML = `<div class="error-message">${data.message || 'An error occurred'}</div>`;
+            console.error('Error data:', data);
         }
     } catch (error) {
         console.error('Error:', error);
