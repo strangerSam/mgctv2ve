@@ -3,7 +3,10 @@ let adminCode = '';
 let testMode = false;
 
 async function checkMovieStatus() {
-    if (!window.walletManager?.publicKey) {
+    // Vérifier si le wallet est connecté (soit via connexion manuelle, soit via auto-connexion)
+    const walletConnected = window.walletManager?.publicKey || localStorage.getItem('wallet-autoconnect') === 'true';
+    
+    if (!walletConnected) {
         return;
     }
 
@@ -13,12 +16,29 @@ async function checkMovieStatus() {
 
         if (data.isSolved) {
             const guessInput = document.getElementById('movie-guess');
-            guessInput.style.display = 'none';
+            if (!guessInput) return;
 
-            const titleDisplay = document.createElement('div');
-            titleDisplay.className = 'movie-title';
-            titleDisplay.textContent = data.movieTitle;
-            guessInput.parentNode.insertBefore(titleDisplay, guessInput);
+            // Cacher et désactiver l'input
+            guessInput.style.display = 'none';
+            guessInput.disabled = true;
+
+            // Afficher le titre si ce n'est pas déjà fait
+            if (!document.querySelector('.movie-title')) {
+                const titleDisplay = document.createElement('div');
+                titleDisplay.className = 'movie-title';
+                titleDisplay.textContent = data.movieTitle;
+                guessInput.parentNode.insertBefore(titleDisplay, guessInput);
+                
+                // Ajouter un message de résultat
+                let resultElement = document.getElementById('guess-result');
+                if (!resultElement) {
+                    resultElement = document.createElement('div');
+                    resultElement.id = 'guess-result';
+                    document.querySelector('.guess-container').appendChild(resultElement);
+                }
+                resultElement.textContent = "You've already solved this movie!";
+                resultElement.className = 'result-correct';
+            }
         }
     } catch (error) {
         console.error('Error checking movie status:', error);
@@ -45,7 +65,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         imageElement.src = currentMovie.screenshot;
         imageElement.alt = `Screenshot from movie`;
 
-        await checkMovieStatus();
+        // Attendre un court instant pour que le wallet s'initialise
+        setTimeout(async () => {
+            await checkMovieStatus();
+        }, 500);
 
         // Initialiser le compte à rebours
         const countdownContainer = document.getElementById('countdown-container');
