@@ -663,6 +663,27 @@ footer {
     font-family: 'Happy Monkey', cursive;
 }
 
+/* Styles pour le bouton de wallet */
+.wallet-button-container {
+    display: inline-block;
+    margin-left: 20px;
+}
+
+.wallet-button {
+    background-color: #558380;
+    color: white;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 25px;
+    cursor: pointer;
+    font-family: 'Happy Monkey', cursive;
+    transition: background-color 0.3s ease;
+}
+
+.wallet-button:hover {
+    background-color: #446966;
+}
+
 /* Responsive design */
 @media (max-width: 768px) {
     .auth-container {
