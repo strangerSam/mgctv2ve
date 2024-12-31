@@ -1,5 +1,3 @@
-// public/js/wallet.js
-
 class SolanaWalletManager {
     constructor() {
         this.provider = null;
@@ -8,14 +6,63 @@ class SolanaWalletManager {
     }
 
     async init() {
-        // Attendre que Phantom soit injecté
         if (typeof window.solana !== 'undefined') {
             this.provider = window.solana;
             console.log('Phantom wallet found!');
+            
+            // Essayer de se reconnecter automatiquement
+            try {
+                // Vérifier si l'utilisateur était précédemment connecté
+                const autoConnectAllowed = localStorage.getItem('wallet-autoconnect') === 'true';
+                
+                if (autoConnectAllowed) {
+                    const resp = await this.provider.connect({ onlyIfTrusted: true });
+                    this.publicKey = resp.publicKey.toString();
+                    this.updateWalletButton();
+                }
+            } catch (err) {
+                console.log('Auto-connection failed, user needs to connect manually');
+            }
+
             this.addWalletButton();
         } else {
             console.log('Phantom wallet not found! Please install it.');
             this.addPhantomInstallButton();
+        }
+    }
+
+    async connectWallet() {
+        try {
+            const resp = await this.provider.connect();
+            this.publicKey = resp.publicKey.toString();
+            // Sauvegarder l'état de connexion
+            localStorage.setItem('wallet-autoconnect', 'true');
+            this.updateWalletButton();
+            return true;
+        } catch (err) {
+            console.error('Error connecting to wallet:', err);
+            return false;
+        }
+    }
+
+    async disconnectWallet() {
+        try {
+            await this.provider.disconnect();
+            this.publicKey = null;
+            // Supprimer l'état de connexion
+            localStorage.removeItem('wallet-autoconnect');
+            this.updateWalletButton();
+        } catch (err) {
+            console.error('Error disconnecting wallet:', err);
+        }
+    }
+
+    updateWalletButton() {
+        const button = document.querySelector('.wallet-button');
+        if (button) {
+            button.innerHTML = this.publicKey 
+                ? `Connected: ${this.publicKey.slice(0, 4)}...${this.publicKey.slice(-4)}`
+                : 'Connect Wallet';
         }
     }
 
@@ -31,35 +78,23 @@ class SolanaWalletManager {
         
         connectButton.onclick = async () => {
             if (!this.publicKey) {
-                try {
-                    // Demander à l'utilisateur de connecter son wallet
-                    const resp = await this.provider.connect();
-                    this.publicKey = resp.publicKey.toString();
-                    connectButton.innerHTML = `Connected: ${this.publicKey.slice(0, 4)}...${this.publicKey.slice(-4)}`;
-                    this.onWalletConnected(this.publicKey);
-                } catch (err) {
-                    console.error('Error connecting to wallet:', err);
-                }
+                await this.connectWallet();
             } else {
-                // Déconnexion
-                await this.provider.disconnect();
-                this.publicKey = null;
-                connectButton.innerHTML = 'Connect Wallet';
-                this.onWalletDisconnected();
+                await this.disconnectWallet();
             }
         };
 
         // Gérer les événements de connexion/déconnexion
         this.provider.on('connect', (publicKey) => {
             this.publicKey = publicKey.toString();
-            connectButton.innerHTML = `Connected: ${this.publicKey.slice(0, 4)}...${this.publicKey.slice(-4)}`;
-            this.onWalletConnected(this.publicKey);
+            this.updateWalletButton();
+            localStorage.setItem('wallet-autoconnect', 'true');
         });
 
         this.provider.on('disconnect', () => {
             this.publicKey = null;
-            connectButton.innerHTML = 'Connect Wallet';
-            this.onWalletDisconnected();
+            this.updateWalletButton();
+            localStorage.removeItem('wallet-autoconnect');
         });
 
         buttonContainer.appendChild(connectButton);
