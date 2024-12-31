@@ -142,20 +142,24 @@ class SolanaWalletManager {
                 await this.disconnectWallet();
             }
         };
-
-        // Gérer les événements de connexion/déconnexion
-        this.provider.on('connect', (publicKey) => {
-            this.publicKey = publicKey.toString();
+    
+        // Gérer les événements de connexion/déconnexion du Phantom wallet lui-même
+        this.provider.on('connect', () => {
             this.updateWalletButton();
-            localStorage.setItem('wallet-autoconnect', 'true');
+            window.dispatchEvent(new Event('wallet-connected'));
+            this.startDisconnectTimer();
         });
-
+    
         this.provider.on('disconnect', () => {
             this.publicKey = null;
             this.updateWalletButton();
-            localStorage.removeItem('wallet-autoconnect');
+            window.dispatchEvent(new Event('wallet-disconnected'));
+            if (this.disconnectTimer) {
+                clearTimeout(this.disconnectTimer);
+                this.disconnectTimer = null;
+            }
         });
-
+    
         buttonContainer.appendChild(connectButton);
         document.querySelector('.nav-links').appendChild(buttonContainer);
     }

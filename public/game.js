@@ -132,12 +132,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
         // Ajouter les écouteurs d'événements pour le wallet
-        window.addEventListener('wallet-connected', () => {
-            updateGuessInputState();
-        });
-        window.addEventListener('wallet-disconnected', () => {
-            updateGuessInputState();
-        });
+
+        window.removeEventListener('wallet-connected', updateGuessInputState); // Pour éviter les doublons
+        window.removeEventListener('wallet-disconnected', updateGuessInputState);
+
+        window.addEventListener('wallet-connected', updateGuessInputState);
+        window.addEventListener('wallet-disconnected', updateGuessInputState);
+        
     } catch (error) {
         console.error('Error loading game:', error);
         displayError('Error loading game. Please try again later.');
