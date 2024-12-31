@@ -70,7 +70,55 @@ const User = mongoose.model('User', userSchema);
 
 // Routes
 app.get('/api/daily-movie', async (req, res) => {
-    // ... (garder le code existant pour cette route)
+    app.get('/api/daily-movie', async (req, res) => {
+        try {
+            const parisTime = moment().tz("Europe/Paris");
+            const currentDate = parisTime.startOf('day');
+            const count = await Movie.countDocuments();
+            
+            if (count === 0) {
+                return res.status(404).json({ 
+                    message: 'No movies found in database',
+                    error: 'EMPTY_DATABASE'
+                });
+            }
+    
+            const startOfYear = moment().tz("Europe/Paris").startOf('year');
+            const dayOfYear = currentDate.diff(startOfYear, 'days');
+            const index = dayOfYear % count;
+            const movie = await Movie.findOne().skip(index);
+            
+            if (!movie) {
+                return res.status(404).json({ 
+                    message: 'Movie not found for today',
+                    error: 'MOVIE_NOT_FOUND'
+                });
+            }
+    
+            const nextUpdate = parisTime.clone().add(1, 'day').startOf('day');
+            const minutesUntilNextUpdate = nextUpdate.diff(parisTime, 'minutes');
+            
+            res.json({ 
+                title: movie.title,
+                screenshot: movie.screenshot,
+                currentTime: parisTime.format(),
+                nextUpdate: nextUpdate.format(),
+                minutesUntilNext: minutesUntilNextUpdate,
+                timeInfo: {
+                    currentParis: parisTime.format('HH:mm'),
+                    nextChange: nextUpdate.format('YYYY-MM-DD HH:mm'),
+                    minutesRemaining: minutesUntilNextUpdate
+                }
+            });
+    
+        } catch (error) {
+            console.error('Error in daily-movie route:', error);
+            res.status(500).json({ 
+                message: 'Internal server error',
+                error: error.message 
+            });
+        }
+    });
 });
 
 // Nouvelle route pour vérifier l'existence d'un utilisateur
