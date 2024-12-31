@@ -168,6 +168,35 @@ app.get('/api/check-participation', async (req, res) => {
     }
 });
 
+app.get('/api/check-movie-solved', async (req, res) => {
+    try {
+        const { solanaAddress } = req.query;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const user = await User.findOne({ 
+            solanaAddress,
+            lastParticipation: { $gte: today }
+        });
+
+        if (user && user.solvedMovies.includes(currentMovie.title)) {
+            return res.json({ 
+                isSolved: true,
+                movieTitle: currentMovie.title
+            });
+        }
+
+        res.json({ isSolved: false });
+    } catch (error) {
+        console.error('Error checking solved movie:', error);
+        res.status(500).json({
+            message: 'Internal server error',
+            isSolved: false
+        });
+    }
+});
+
+
 app.post('/api/submit-user', submissionLimiter, async (req, res) => {
     try {
         const { email, solanaAddress } = req.body;

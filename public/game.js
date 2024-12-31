@@ -2,6 +2,29 @@ let currentMovie = null;
 let adminCode = '';
 let testMode = false;
 
+async function checkMovieStatus() {
+    if (!window.walletManager?.publicKey) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`https://mgctv2ve-backend.onrender.com/api/check-movie-solved?solanaAddress=${window.walletManager.publicKey}`);
+        const data = await response.json();
+
+        if (data.isSolved) {
+            const guessInput = document.getElementById('movie-guess');
+            guessInput.style.display = 'none';
+
+            const titleDisplay = document.createElement('div');
+            titleDisplay.className = 'movie-title';
+            titleDisplay.textContent = data.movieTitle;
+            guessInput.parentNode.insertBefore(titleDisplay, guessInput);
+        }
+    } catch (error) {
+        console.error('Error checking movie status:', error);
+    }
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     // Enregistrement du Service Worker
     if ('serviceWorker' in navigator) {
@@ -21,6 +44,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         const imageElement = document.getElementById('daily-movie-image');
         imageElement.src = currentMovie.screenshot;
         imageElement.alt = `Screenshot from movie`;
+
+        await checkMovieStatus();
 
         // Initialiser le compte à rebours
         const countdownContainer = document.getElementById('countdown-container');
