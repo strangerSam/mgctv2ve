@@ -69,32 +69,38 @@ const userSchema = new mongoose.Schema({
 
 const User = mongoose.model('User', userSchema);
 
-// Routes
-app.get('/api/daily-movie', async (req, res) => {
+// Fonction pour récupérer le film du jour
+async function getDailyMovie() {
     try {
         const parisTime = moment().tz("Europe/Paris");
         const currentDate = parisTime.startOf('day');
         const count = await Movie.countDocuments();
         
         if (count === 0) {
-            return res.status(404).json({ 
-                message: 'No movies found in database',
-                error: 'EMPTY_DATABASE'
-            });
+            throw new Error('No movies found in database');
         }
 
         const startOfYear = moment().tz("Europe/Paris").startOf('year');
         const dayOfYear = currentDate.diff(startOfYear, 'days');
         const index = dayOfYear % count;
         const movie = await Movie.findOne().skip(index);
-        
+
         if (!movie) {
-            return res.status(404).json({ 
-                message: 'Movie not found for today',
-                error: 'MOVIE_NOT_FOUND'
-            });
+            throw new Error('No movie found for today');
         }
 
+        return movie;
+    } catch (error) {
+        console.error('Error in getDailyMovie:', error);
+        throw error;
+    }
+}
+
+// Routes
+app.get('/api/daily-movie', async (req, res) => {
+    try {
+        const movie = await getDailyMovie();
+        const parisTime = moment().tz("Europe/Paris");
         const nextUpdate = parisTime.clone().add(1, 'day').startOf('day');
         const minutesUntilNextUpdate = nextUpdate.diff(parisTime, 'minutes');
         
@@ -110,7 +116,6 @@ app.get('/api/daily-movie', async (req, res) => {
                 minutesRemaining: minutesUntilNextUpdate
             }
         });
-
     } catch (error) {
         console.error('Error in daily-movie route:', error);
         res.status(500).json({ 
@@ -180,16 +185,8 @@ app.get('/api/check-movie-solved', async (req, res) => {
             return res.json({ isSolved: false });
         }
 
-        // Récupérer le film du jour de façon asynchrone
+        // Utiliser la fonction getDailyMovie
         const movie = await getDailyMovie();
-        if (!movie) {
-            return res.status(404).json({ 
-                message: 'No movie found for today',
-                isSolved: false 
-            });
-        }
-
-        // Vérifier si ce film est dans la liste des films résolus
         const isSolved = user.solvedMovies.includes(movie.title);
         
         res.json({ 
@@ -205,7 +202,6 @@ app.get('/api/check-movie-solved', async (req, res) => {
         });
     }
 });
-
 
 app.post('/api/submit-user', submissionLimiter, async (req, res) => {
     try {
@@ -247,7 +243,6 @@ app.post('/api/submit-user', submissionLimiter, async (req, res) => {
         
         await user.save();
 
-        // Envoi de l'email de vérification si nécessaire
         if (!user.isEmailVerified) {
             const verificationLink = `https://mgctv2ve-backend.onrender.com/verify-email/${verificationToken}`;
             
