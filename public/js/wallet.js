@@ -2,6 +2,8 @@ class SolanaWalletManager {
     constructor() {
         this.provider = null;
         this.publicKey = null;
+        this.disconnectTimer = null;
+        this.DISCONNECT_TIMEOUT = 10 * 60 * 1000; // 10 minutes en millisecondes
         this.init();
     }
 
@@ -10,24 +12,57 @@ class SolanaWalletManager {
             this.provider = window.solana;
             console.log('Phantom wallet found!');
             
-            // Essayer de se reconnecter automatiquement
             try {
-                // Vérifier si l'utilisateur était précédemment connecté
                 const autoConnectAllowed = localStorage.getItem('wallet-autoconnect') === 'true';
                 
                 if (autoConnectAllowed) {
                     const resp = await this.provider.connect({ onlyIfTrusted: true });
                     this.publicKey = resp.publicKey.toString();
                     this.updateWalletButton();
+                    this.startDisconnectTimer();
                 }
             } catch (err) {
                 console.log('Auto-connection failed, user needs to connect manually');
             }
 
             this.addWalletButton();
+            this.setupActivityListeners();
         } else {
             console.log('Phantom wallet not found! Please install it.');
             this.addPhantomInstallButton();
+        }
+    }
+
+    setupActivityListeners() {
+        // Liste des événements à surveiller pour réinitialiser le timer
+        const events = ['mousedown', 'keydown', 'scroll', 'touchstart'];
+        
+        events.forEach(event => {
+            document.addEventListener(event, () => {
+                if (this.publicKey) {
+                    this.resetDisconnectTimer();
+                }
+            });
+        });
+    }
+
+    startDisconnectTimer() {
+        if (this.disconnectTimer) {
+            clearTimeout(this.disconnectTimer);
+        }
+        
+        this.disconnectTimer = setTimeout(() => {
+            if (this.publicKey) {
+                console.log('Auto-disconnecting due to inactivity');
+                this.disconnectWallet();
+            }
+        }, this.DISCONNECT_TIMEOUT);
+    }
+
+    resetDisconnectTimer() {
+        if (this.disconnectTimer) {
+            clearTimeout(this.disconnectTimer);
+            this.startDisconnectTimer();
         }
     }
 
@@ -35,11 +70,10 @@ class SolanaWalletManager {
         try {
             const resp = await this.provider.connect();
             this.publicKey = resp.publicKey.toString();
-            // Sauvegarder l'état de connexion
             localStorage.setItem('wallet-autoconnect', 'true');
             this.updateWalletButton();
+            this.startDisconnectTimer();
             
-            // Ajouter cette ligne pour vérifier si l'utilisateur a déjà résolu le film
             await checkMovieStatus();
             
             return true;
@@ -53,9 +87,13 @@ class SolanaWalletManager {
         try {
             await this.provider.disconnect();
             this.publicKey = null;
-            // Supprimer l'état de connexion
             localStorage.removeItem('wallet-autoconnect');
             this.updateWalletButton();
+            
+            if (this.disconnectTimer) {
+                clearTimeout(this.disconnectTimer);
+                this.disconnectTimer = null;
+            }
         } catch (err) {
             console.error('Error disconnecting wallet:', err);
         }
