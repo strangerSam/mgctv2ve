@@ -37,14 +37,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 this.value = '';
             }
         });
-
-        // Ajouter la validation en temps réel pour l'adresse Solana
-        const solanaInput = document.querySelector('input[name="solanaAddress"]');
-        if (solanaInput) {
-            solanaInput.addEventListener('input', function() {
-                validateSolanaAddressInput(this);
-            });
-        }
     } catch (error) {
         console.error('Error loading game:', error);
         displayError('Error loading game. Please try again later.');
@@ -73,7 +65,7 @@ function updateCountdown() {
 }
 
 // Mode Admin et Test
-document.getElementById('admin-toggle').addEventListener('click', () => {
+document.getElementById('admin-toggle')?.addEventListener('click', () => {
     const code = prompt('Enter admin code:');
     if (code) {
         adminCode = code;
@@ -81,7 +73,7 @@ document.getElementById('admin-toggle').addEventListener('click', () => {
     }
 });
 
-document.getElementById('test-toggle').addEventListener('click', () => {
+document.getElementById('test-toggle')?.addEventListener('click', () => {
     const code = prompt('Enter test mode code:');
     if (code === '070518') {
         testMode = !testMode;
@@ -128,73 +120,6 @@ async function validateGuess(guess) {
     }
 }
 
-function isValidSolanaAddress(address) {
-    if (typeof address !== 'string' || address.length !== 44) {
-        return false;
-    }
-    
-    const base58Regex = /^[1-9A-HJ-NP-Za-km-z]+$/;
-    return base58Regex.test(address);
-}
-
-function validateSolanaAddressInput(inputElement) {
-    const container = inputElement.parentElement;
-    const value = inputElement.value.trim();
-    
-    if (value === '') {
-        container.classList.remove('valid', 'invalid');
-        return;
-    }
-    
-    if (isValidSolanaAddress(value)) {
-        container.classList.add('valid');
-        container.classList.remove('invalid');
-        removeValidationError(inputElement);
-    } else {
-        container.classList.add('invalid');
-        container.classList.remove('valid');
-    }
-}
-
-function showValidationError(inputElement, message) {
-    removeValidationError(inputElement);
-
-    const errorDiv = document.createElement('div');
-    errorDiv.className = 'validation-error';
-    errorDiv.textContent = message;
-    inputElement.parentElement.appendChild(errorDiv);
-
-    inputElement.classList.add('error');
-
-    setTimeout(() => {
-        inputElement.classList.remove('error');
-    }, 3000);
-}
-
-function removeValidationError(inputElement) {
-    const existingError = inputElement.parentElement.querySelector('.validation-error');
-    if (existingError) {
-        existingError.remove();
-    }
-}
-
-function displayError(message) {
-    let errorElement = document.getElementById('error-message');
-    
-    if (!errorElement) {
-        errorElement = document.createElement('div');
-        errorElement.id = 'error-message';
-        errorElement.className = 'error-message';
-        document.querySelector('.guess-container').appendChild(errorElement);
-    }
-    
-    errorElement.textContent = message;
-    
-    setTimeout(() => {
-        errorElement.textContent = '';
-    }, 3000);
-}
-
 function showResult(isCorrect) {
     let resultElement = document.getElementById('guess-result');
     
@@ -222,10 +147,20 @@ function showResult(isCorrect) {
 
 async function handleCorrectGuess() {
     try {
+        // Vérifier si le wallet est connecté
+        if (!window.walletManager?.publicKey) {
+            const message = document.createElement('div');
+            message.className = 'wallet-message';
+            message.textContent = 'Please connect your wallet to participate!';
+            const resultElement = document.getElementById('guess-result');
+            resultElement.parentNode.insertBefore(message, resultElement.nextSibling);
+            return;
+        }
+
         const response = await fetch(`https://mgctv2ve-backend.onrender.com/api/check-participation?adminCode=${adminCode}&testMode=${testMode}`);
         const data = await response.json();
 
-        if (data.hasParticipated && data.userInfo) {
+        if (data.hasParticipated) {
             const participationMessage = document.createElement('div');
             participationMessage.className = 'participation-message';
             participationMessage.textContent = 'You have already submitted your information today. Come back tomorrow for a new challenge!';
@@ -235,30 +170,32 @@ async function handleCorrectGuess() {
             const formContainer = document.querySelector('.user-form-container');
             formContainer.style.display = 'none';
         } else {
+            // Afficher uniquement le champ email
             const formContainer = document.querySelector('.user-form-container');
             formContainer.style.display = 'block';
+            formContainer.innerHTML = `
+                <form id="user-form" class="user-form">
+                    <input type="email" name="email" placeholder="Your email" required class="form-input">
+                    <p class="wallet-info">Connected wallet: ${window.walletManager.publicKey.slice(0, 4)}...${window.walletManager.publicKey.slice(-4)}</p>
+                    <button type="submit" class="form-submit">Submit</button>
+                </form>
+            `;
+
+            // Mettre à jour le gestionnaire d'événements du formulaire
+            document.getElementById('user-form').addEventListener('submit', handleFormSubmit);
         }
     } catch (error) {
         console.error('Error checking participation:', error);
     }
 }
 
-document.getElementById('user-form').addEventListener('submit', async (e) => {
+async function handleFormSubmit(e) {
     e.preventDefault();
     
     const formData = {
-        firstName: e.target.firstName.value.trim(),
         email: e.target.email.value.trim(),
-        solanaAddress: e.target.solanaAddress.value.trim()
+        solanaAddress: window.walletManager.publicKey
     };
-
-    if (!isValidSolanaAddress(formData.solanaAddress)) {
-        showValidationError(
-            e.target.solanaAddress, 
-            'Please enter a valid Solana address (44 characters in base58 format)'
-        );
-        return;
-    }
 
     try {
         const headers = {
@@ -288,15 +225,28 @@ document.getElementById('user-form').addEventListener('submit', async (e) => {
                     : 'Information submitted successfully! Thank you for participating.'}
             </div>`;
         } else {
-            if (data.error === 'INVALID_SOLANA_ADDRESS') {
-                showValidationError(e.target.solanaAddress, data.message);
-            } else {
-                formContainer.innerHTML = `<div class="error-message">${data.message}</div>`;
-            }
+            formContainer.innerHTML = `<div class="error-message">${data.message}</div>`;
         }
     } catch (error) {
         console.error('Error:', error);
         const formContainer = document.querySelector('.user-form-container');
         formContainer.innerHTML = '<div class="error-message">Error submitting information. Please try again later.</div>';
     }
-});
+}
+
+function displayError(message) {
+    let errorElement = document.getElementById('error-message');
+    
+    if (!errorElement) {
+        errorElement = document.createElement('div');
+        errorElement.id = 'error-message';
+        errorElement.className = 'error-message';
+        document.querySelector('.guess-container').appendChild(errorElement);
+    }
+    
+    errorElement.textContent = message;
+    
+    setTimeout(() => {
+        errorElement.textContent = '';
+    }, 3000);
+}

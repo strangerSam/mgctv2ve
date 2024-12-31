@@ -21,14 +21,18 @@ const submissionLimiter = rateLimit({
     message: { 
         error: 'You can only submit your information once per day.' 
     },
+    keyGenerator: (req) => {
+        // Utiliser l'adresse Solana comme clé pour le rate limiting
+        return req.body.solanaAddress || req.ip;
+    },
     standardHeaders: true,
     legacyHeaders: false,
 });
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('Connected to MongoDB'))
-  .catch(err => console.error('Could not connect to MongoDB:', err));
+    .then(() => console.log('Connected to MongoDB'))
+    .catch(err => console.error('Could not connect to MongoDB:', err));
 
 // Schémas
 const movieSchema = new mongoose.Schema({
@@ -39,73 +43,53 @@ const movieSchema = new mongoose.Schema({
 const Movie = mongoose.model('Movie', movieSchema);
 
 const userSchema = new mongoose.Schema({
-    firstName: String,
-    email: String,
-    solanaAddress: String,
-    userIP: String,
-    submittedDate: { type: Date, default: Date.now },
-    isEmailVerified: { type: Boolean, default: false },
+    solanaAddress: { 
+        type: String, 
+        required: true,
+        unique: true 
+    },
+    email: { 
+        type: String, 
+        required: true 
+    },
+    isEmailVerified: { 
+        type: Boolean, 
+        default: false 
+    },
     verificationToken: String,
     verificationExpires: Date,
-    correctAnswers: { type: Number, default: 0 },
-    solvedMovies: [String]
+    correctAnswers: { 
+        type: Number, 
+        default: 0 
+    },
+    solvedMovies: [String],
+    lastParticipation: Date
 }, { collection: 'users' });
 
 const User = mongoose.model('User', userSchema);
 
 // Routes
 app.get('/api/daily-movie', async (req, res) => {
+    // ... (garder le code existant pour cette route)
+});
+
+// Nouvelle route pour vérifier l'existence d'un utilisateur
+app.get('/api/check-user', async (req, res) => {
     try {
-        const parisTime = moment().tz("Europe/Paris");
-        const currentDate = parisTime.startOf('day');
-        const count = await Movie.countDocuments();
-        
-        if (count === 0) {
-            return res.status(404).json({ 
-                message: 'No movies found in database',
-                error: 'EMPTY_DATABASE'
-            });
+        const { address } = req.query;
+        if (!address) {
+            return res.status(400).json({ message: 'Solana address is required' });
         }
 
-        const startOfYear = moment().tz("Europe/Paris").startOf('year');
-        const dayOfYear = currentDate.diff(startOfYear, 'days');
-        const index = dayOfYear % count;
-        const movie = await Movie.findOne().skip(index);
-        
-        if (!movie) {
-            return res.status(404).json({ 
-                message: 'Movie not found for today',
-                error: 'MOVIE_NOT_FOUND'
-            });
-        }
-
-        const nextUpdate = parisTime.clone().add(1, 'day').startOf('day');
-        const minutesUntilNextUpdate = nextUpdate.diff(parisTime, 'minutes');
-        
-        res.json({ 
-            title: movie.title,
-            screenshot: movie.screenshot,
-            currentTime: parisTime.format(),
-            nextUpdate: nextUpdate.format(),
-            minutesUntilNext: minutesUntilNextUpdate,
-            timeInfo: {
-                currentParis: parisTime.format('HH:mm'),
-                nextChange: nextUpdate.format('YYYY-MM-DD HH:mm'),
-                minutesRemaining: minutesUntilNextUpdate
-            }
-        });
-
+        const user = await User.findOne({ solanaAddress: address });
+        res.json({ exists: !!user, user });
     } catch (error) {
-        console.error('Error in daily-movie route:', error);
-        res.status(500).json({ 
-            message: 'Internal server error',
-            error: error.message 
-        });
+        res.status(500).json({ message: error.message });
     }
 });
 
 app.get('/api/check-participation', async (req, res) => {
-    const userIP = req.ip;
+    const { solanaAddress } = req.query;
     const adminCode = req.query.adminCode;
     const testMode = req.query.testMode === 'true';
     
@@ -118,8 +102,8 @@ app.get('/api/check-participation', async (req, res) => {
     
     try {
         const user = await User.findOne({
-            userIP: userIP,
-            submittedDate: { $gte: today }
+            solanaAddress,
+            lastParticipation: { $gte: today }
         });
         
         if (user) {
@@ -138,14 +122,82 @@ app.get('/api/check-participation', async (req, res) => {
     }
 });
 
+app.post('/api/submit-user', submissionLimiter, async (req, res) => {
+    try {
+        const { email, solanaAddress } = req.body;
+        const adminCode = req.headers['admin-code'];
+        const testMode = req.headers['test-mode'] === 'true';
+
+        // Vérification de l'adresse Solana
+        if (!solanaAddress || solanaAddress.length !== 44) {
+            return res.status(400).json({ 
+                message: 'Invalid Solana address',
+                error: 'INVALID_SOLANA_ADDRESS'
+            });
+        }
+
+        let user = await User.findOne({ solanaAddress });
+
+        if (user) {
+            // Mettre à jour l'email si l'utilisateur existe déjà
+            user.email = email;
+            user.lastParticipation = new Date();
+            await user.save();
+            return res.json({ message: 'Participation recorded successfully!' });
+        }
+
+        // Création d'un nouvel utilisateur
+        const verificationToken = crypto.randomBytes(32).toString('hex');
+        const verificationExpires = new Date();
+        verificationExpires.setHours(verificationExpires.getHours() + 24);
+
+        user = new User({
+            email,
+            solanaAddress,
+            lastParticipation: new Date(),
+            verificationToken,
+            verificationExpires,
+            isEmailVerified: adminCode === process.env.ADMIN_CODE || testMode
+        });
+        
+        await user.save();
+
+        // Envoi de l'email de vérification si nécessaire
+        if (!user.isEmailVerified) {
+            const verificationLink = `https://mgctv2ve-backend.onrender.com/verify-email/${verificationToken}`;
+            
+            await transporter.sendMail({
+                from: process.env.EMAIL_USER,
+                to: email,
+                subject: 'Verify your email for The Moviegoers Cats',
+                html: `
+                    <h1>Welcome to The Moviegoers Cats!</h1>
+                    <p>Thanks for participating! Please click the link below to verify your email address:</p>
+                    <a href="${verificationLink}">Verify Email</a>
+                    <p>This link will expire in 24 hours.</p>
+                `
+            });
+
+            return res.json({ 
+                message: 'Please check your email to verify your account',
+                requiresVerification: true
+            });
+        }
+
+        res.json({ message: 'Registration successful!' });
+
+    } catch (error) {
+        console.error('Save error:', error);
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// Mise à jour de la route pour incrémenter le score
 app.post('/api/increment-score', async (req, res) => {
     try {
-        const { email, solanaAddress, movieTitle } = req.body;
+        const { solanaAddress, movieTitle } = req.body;
         
-        const user = await User.findOne({ 
-            email: email,
-            solanaAddress: solanaAddress
-        });
+        const user = await User.findOne({ solanaAddress });
 
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
@@ -174,116 +226,7 @@ app.post('/api/increment-score', async (req, res) => {
     }
 });
 
-function isValidSolanaAddress(address) {
-    if (typeof address !== 'string' || address.length !== 44) {
-        return false;
-    }
-
-    const base58Regex = /^[1-9A-HJ-NP-Za-km-z]+$/;
-    return base58Regex.test(address);
-}
-
-app.post('/api/submit-user', submissionLimiter, async (req, res) => {
-    try {
-        const { firstName, email, solanaAddress } = req.body;
-        const userIP = req.ip;
-        const adminCode = req.headers['admin-code'];
-        const testMode = req.headers['test-mode'] === 'true';
-
-        if (!isValidSolanaAddress(solanaAddress)) {
-            return res.status(400).json({ 
-                message: 'Invalid Solana address format. Please provide a valid Solana address.',
-                error: 'INVALID_SOLANA_ADDRESS'
-            });
-        }
-
-        const existingUser = await User.findOne({
-            $or: [
-                { email: email },
-                { solanaAddress: solanaAddress }
-            ]
-        });
-
-        if (existingUser) {
-            let errorMessage = existingUser.email === email && existingUser.solanaAddress === solanaAddress
-                ? 'This email and Solana address combination is already registered.'
-                : existingUser.email === email
-                ? 'This email is already registered.'
-                : 'This Solana address is already registered.';
-            return res.status(400).json({ message: errorMessage });
-        }
-
-        if (adminCode === process.env.ADMIN_CODE || testMode) {
-            const user = new User({
-                firstName,
-                email,
-                solanaAddress,
-                userIP,
-                isEmailVerified: true
-            });
-            await user.save();
-            return res.json({ message: 'Information submitted successfully (Admin/Test mode)' });
-        }
-
-        const existingVerifiedUser = await User.findOne({
-            email: email,
-            isEmailVerified: true
-        });
-
-        if (existingVerifiedUser) {
-            const user = new User({
-                firstName,
-                email,
-                solanaAddress,
-                userIP,
-                isEmailVerified: true
-            });
-            
-            await user.save();
-            return res.json({ message: 'Information submitted successfully! Thank you for participating.' });
-        }
-
-        const verificationToken = crypto.randomBytes(32).toString('hex');
-        const verificationExpires = new Date();
-        verificationExpires.setHours(verificationExpires.getHours() + 24);
-
-        const user = new User({
-            firstName,
-            email,
-            solanaAddress,
-            userIP,
-            verificationToken,
-            verificationExpires
-        });
-        
-        await user.save();
-
-        const verificationLink = `https://mgctv2ve-backend.onrender.com/verify-email/${verificationToken}`;
-        
-        await transporter.sendMail({
-            from: process.env.EMAIL_USER,
-            to: email,
-            subject: 'Verify your email for The Moviegoers Cats',
-            html: `
-                <h1>Welcome to The Moviegoers Cats!</h1>
-                <p>Hi ${firstName},</p>
-                <p>Thanks for participating! Please click the link below to verify your email address:</p>
-                <a href="${verificationLink}">Verify Email</a>
-                <p>This link will expire in 24 hours.</p>
-            `
-        });
-
-        res.json({ 
-            message: 'Please check your email to verify your account. Check your spam folder if you don\'t see it.',
-            requiresVerification: true
-        });
-
-    } catch (error) {
-        console.error('Save error:', error);
-        res.status(500).json({ message: error.message });
-    }
-});
-
+// Route de vérification d'email (garder la même)
 app.get('/verify-email/:token', async (req, res) => {
     try {
         const user = await User.findOne({ 

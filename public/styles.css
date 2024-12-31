@@ -684,6 +684,23 @@ footer {
     background-color: #446966;
 }
 
+.wallet-message {
+    color: #e74c3c;
+    text-align: center;
+    padding: 10px 20px;
+    margin-top: 10px;
+    font-size: 1.1rem;
+}
+
+.wallet-info {
+    background-color: rgba(85, 131, 128, 0.1);
+    padding: 10px;
+    border-radius: 8px;
+    margin: 10px 0;
+    text-align: center;
+    color: #558380;
+}
+
 /* Responsive design */
 @media (max-width: 768px) {
     .auth-container {
