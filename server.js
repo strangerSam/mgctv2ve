@@ -171,22 +171,32 @@ app.get('/api/check-participation', async (req, res) => {
 app.get('/api/check-movie-solved', async (req, res) => {
     try {
         const { solanaAddress } = req.query;
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        if (!solanaAddress) {
+            return res.status(400).json({ message: 'Solana address is required' });
+        }
 
-        const user = await User.findOne({ 
-            solanaAddress,
-            lastParticipation: { $gte: today }
-        });
+        const user = await User.findOne({ solanaAddress });
+        if (!user) {
+            return res.json({ isSolved: false });
+        }
 
-        if (user && user.solvedMovies.includes(currentMovie.title)) {
-            return res.json({ 
-                isSolved: true,
-                movieTitle: currentMovie.title
+        // Récupérer le film du jour de façon asynchrone
+        const movie = await getDailyMovie();
+        if (!movie) {
+            return res.status(404).json({ 
+                message: 'No movie found for today',
+                isSolved: false 
             });
         }
 
-        res.json({ isSolved: false });
+        // Vérifier si ce film est dans la liste des films résolus
+        const isSolved = user.solvedMovies.includes(movie.title);
+        
+        res.json({ 
+            isSolved,
+            movieTitle: isSolved ? movie.title : null
+        });
+
     } catch (error) {
         console.error('Error checking solved movie:', error);
         res.status(500).json({
