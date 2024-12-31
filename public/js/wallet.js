@@ -18,68 +18,22 @@ class SolanaWalletManager {
                 const autoConnectAllowed = localStorage.getItem('wallet-autoconnect') === 'true';
                 
                 if (isPhantomConnected && autoConnectAllowed) {
-                    // Si le wallet est déjà connecté, récupérer directement la clé publique
                     this.publicKey = this.provider.publicKey.toString();
                     this.updateWalletButton();
                     this.startDisconnectTimer();
-                    // Dispatcher l'événement de connexion
                     window.dispatchEvent(new Event('wallet-connected'));
-                } else if (autoConnectAllowed) {
-                    // Sinon, essayer de se connecter automatiquement
-                    try {
-                        const resp = await this.provider.connect({ onlyIfTrusted: true });
-                        this.publicKey = resp.publicKey.toString();
-                        this.updateWalletButton();
-                        this.startDisconnectTimer();
-                        window.dispatchEvent(new Event('wallet-connected'));
-                    } catch (error) {
-                        console.log('Auto-connection failed, user needs to connect manually');
-                        localStorage.removeItem('wallet-autoconnect');
-                    }
                 }
+
+                this.addWalletButton();
+                this.setupActivityListeners();
+                
             } catch (err) {
                 console.log('Connection check failed:', err);
                 localStorage.removeItem('wallet-autoconnect');
             }
-
-            this.addWalletButton();
-            this.setupActivityListeners();
         } else {
-            console.log('Phantom wallet not found! Please install it.');
+            console.log('Phantom wallet not found!');
             this.addPhantomInstallButton();
-        }
-    }
-
-    setupActivityListeners() {
-        // Liste des événements à surveiller pour réinitialiser le timer
-        const events = ['mousedown', 'keydown', 'scroll', 'touchstart'];
-        
-        events.forEach(event => {
-            document.addEventListener(event, () => {
-                if (this.publicKey) {
-                    this.resetDisconnectTimer();
-                }
-            });
-        });
-    }
-
-    startDisconnectTimer() {
-        if (this.disconnectTimer) {
-            clearTimeout(this.disconnectTimer);
-        }
-        
-        this.disconnectTimer = setTimeout(() => {
-            if (this.publicKey) {
-                console.log('Auto-disconnecting due to inactivity');
-                this.disconnectWallet();
-            }
-        }, this.DISCONNECT_TIMEOUT);
-    }
-
-    resetDisconnectTimer() {
-        if (this.disconnectTimer) {
-            clearTimeout(this.disconnectTimer);
-            this.startDisconnectTimer();
         }
     }
 
@@ -91,7 +45,8 @@ class SolanaWalletManager {
             this.updateWalletButton();
             this.startDisconnectTimer();
             
-            await checkMovieStatus();
+            // S'assurer que l'événement est émis après que tout est configuré
+            window.dispatchEvent(new Event('wallet-connected'));
             
             return true;
         } catch (err) {
@@ -111,9 +66,57 @@ class SolanaWalletManager {
                 clearTimeout(this.disconnectTimer);
                 this.disconnectTimer = null;
             }
+            
+            window.dispatchEvent(new Event('wallet-disconnected'));
         } catch (err) {
             console.error('Error disconnecting wallet:', err);
         }
+    }
+
+    addWalletButton() {
+        const buttonContainer = document.createElement('div');
+        buttonContainer.className = 'wallet-button-container';
+        
+        const connectButton = document.createElement('button');
+        connectButton.className = 'wallet-button';
+        connectButton.innerHTML = this.publicKey 
+            ? `Connected: ${this.publicKey.slice(0, 4)}...${this.publicKey.slice(-4)}`
+            : 'Connect Wallet';
+        
+        connectButton.onclick = async () => {
+            if (!this.publicKey) {
+                await this.connectWallet();
+            } else {
+                await this.disconnectWallet();
+            }
+        };
+
+        // Supprimer les anciens écouteurs s'ils existent
+        this.provider.removeAllListeners('connect');
+        this.provider.removeAllListeners('disconnect');
+
+        // Ajouter les nouveaux écouteurs
+        this.provider.on('connect', (publicKey) => {
+            if (publicKey) {
+                this.publicKey = publicKey.toString();
+                this.updateWalletButton();
+                this.startDisconnectTimer();
+                window.dispatchEvent(new Event('wallet-connected'));
+            }
+        });
+
+        this.provider.on('disconnect', () => {
+            this.publicKey = null;
+            this.updateWalletButton();
+            if (this.disconnectTimer) {
+                clearTimeout(this.disconnectTimer);
+                this.disconnectTimer = null;
+            }
+            window.dispatchEvent(new Event('wallet-disconnected'));
+        });
+
+        buttonContainer.appendChild(connectButton);
+        document.querySelector('.nav-links').appendChild(buttonContainer);
     }
 
     updateWalletButton() {
