@@ -701,6 +701,42 @@ footer {
     color: #558380;
 }
 
+.tell-more-section {
+    padding: 25px 20px;
+}
+.tellmemore-title {
+    text-align: center;
+    color: white;
+    font-size: 2.5rem;
+    margin-bottom: 50px;
+    font-family: 'Happy Monkey', cursive;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.features {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 40px;
+}
+
+.feature {
+    text-align: center;
+    padding: 20px;
+    transition: transform 0.3s ease;
+}
+
+.feature p {
+    color: #DDD;
+    line-height: 1.2;
+    text-align: justify;
+    font-size: 1.5rem; /* Augmente la taille du texte */
+}
+
+
 /* Responsive design */
 @media (max-width: 768px) {
     .auth-container {
@@ -712,7 +748,9 @@ footer {
     .nav-links.active .close-menu-btn {
         display: block;
     }
-
+    .features {
+        grid-template-columns: 1fr;
+    }
 
 /* Responsive Design */
 @media (max-width: 1200px) {
