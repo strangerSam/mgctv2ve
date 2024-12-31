@@ -2,47 +2,9 @@ let currentMovie = null;
 let adminCode = '';
 let testMode = false;
 
-function updateGuessInputState() {
-    const guessInput = document.getElementById('movie-guess');
-    const guessContainer = document.querySelector('.guess-container');
-
-    if (!guessInput || !guessContainer) return;
-
-    // Vérifier si le wallet est connecté
-    const isWalletConnected = window.walletManager?.publicKey;
-
-    if (!isWalletConnected) {
-        // Désactiver l'input
-        guessInput.disabled = true;
-        guessInput.style.backgroundColor = '#f5f5f5';
-        guessInput.style.cursor = 'not-allowed';
-        
-        // Ajouter le message d'avertissement s'il n'existe pas déjà
-        if (!document.querySelector('.wallet-warning')) {
-            const warningMessage = document.createElement('div');
-            warningMessage.className = 'wallet-warning';
-            warningMessage.innerHTML = `
-                <i class="fas fa-exclamation-circle"></i>
-                Please connect your wallet to participate!
-            `;
-            guessContainer.insertBefore(warningMessage, guessInput);
-        }
-    } else {
-        // Activer l'input
-        guessInput.disabled = false;
-        guessInput.style.backgroundColor = 'white';
-        guessInput.style.cursor = 'text';
-        
-        // Supprimer le message d'avertissement s'il existe
-        const warningMessage = document.querySelector('.wallet-warning');
-        if (warningMessage) {
-            warningMessage.remove();
-        }
-    }
-}
-
 async function checkMovieStatus() {
-    const walletConnected = window.walletManager?.publicKey || localStorage.getItem('wallet-autoconnect') === 'true';
+    // Vérifier si le wallet est connecté (soit via connexion manuelle, soit via auto-connexion)
+    const walletConnected = window.walletManager?.publicKey;
     
     if (!walletConnected) {
         return;
@@ -80,6 +42,48 @@ async function checkMovieStatus() {
         }
     } catch (error) {
         console.error('Error checking movie status:', error);
+    }
+}
+
+function updateGuessInputState() {
+    const guessInput = document.getElementById('movie-guess');
+    const guessContainer = document.querySelector('.guess-container');
+
+    if (!guessInput || !guessContainer) return;
+
+    // Vérifier si le wallet est connecté
+    const isWalletConnected = window.walletManager?.publicKey;
+
+    if (!isWalletConnected) {
+        // Désactiver l'input
+        guessInput.disabled = true;
+        guessInput.style.backgroundColor = '#f5f5f5';
+        guessInput.style.cursor = 'not-allowed';
+        
+        // Ajouter le message d'avertissement s'il n'existe pas déjà
+        if (!document.querySelector('.wallet-warning')) {
+            const warningMessage = document.createElement('div');
+            warningMessage.className = 'wallet-warning';
+            warningMessage.innerHTML = `
+                <i class="fas fa-exclamation-circle"></i>
+                Connectez votre portefeuille Solana pour participer au jeu
+            `;
+            guessContainer.insertBefore(warningMessage, guessInput);
+        }
+    } else {
+        // Activer l'input
+        guessInput.disabled = false;
+        guessInput.style.backgroundColor = 'white';
+        guessInput.style.cursor = 'text';
+        
+        // Supprimer le message d'avertissement s'il existe
+        const warningMessage = document.querySelector('.wallet-warning');
+        if (warningMessage) {
+            warningMessage.remove();
+        }
+
+        // Vérifier immédiatement si le film a déjà été résolu
+        checkMovieStatus();
     }
 }
 
@@ -126,15 +130,19 @@ document.addEventListener('DOMContentLoaded', async () => {
                 this.value = '';
             }
         });
+
+        // Ajouter les écouteurs d'événements pour le wallet
+        window.addEventListener('wallet-connected', () => {
+            updateGuessInputState();
+        });
+        window.addEventListener('wallet-disconnected', () => {
+            updateGuessInputState();
+        });
     } catch (error) {
         console.error('Error loading game:', error);
         displayError('Error loading game. Please try again later.');
     }
 });
-
-// Ajouter des écouteurs d'événements pour le wallet
-window.addEventListener('wallet-connected', updateGuessInputState);
-window.addEventListener('wallet-disconnected', updateGuessInputState);
 
 function updateCountdown() {
     const countdownContainer = document.getElementById('countdown-container');
