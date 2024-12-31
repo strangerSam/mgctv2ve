@@ -83,25 +83,27 @@ document.getElementById('test-toggle')?.addEventListener('click', () => {
 
 async function validateGuess(guess) {
     if (!guess.trim()) return;
-
+    
     try {
         const normalizedGuess = guess.trim().toLowerCase();
         const normalizedTitle = currentMovie.title.toLowerCase();
         const isCorrect = normalizedGuess === normalizedTitle;
 
         if (isCorrect) {
-            const response = await fetch(`https://mgctv2ve-backend.onrender.com/api/check-participation?adminCode=${adminCode}&testMode=${testMode}`);
-            const data = await response.json();
+            // Vérifier d'abord si le wallet est connecté
+            if (!window.walletManager?.publicKey) {
+                showResult(isCorrect);
+                return;
+            }
 
-            if (data.hasParticipated && data.userInfo) {
+            try {
                 const scoreResponse = await fetch('https://mgctv2ve-backend.onrender.com/api/increment-score', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        email: data.userInfo.email,
-                        solanaAddress: data.userInfo.solanaAddress,
+                        solanaAddress: window.walletManager.publicKey,
                         movieTitle: currentMovie.title
                     })
                 });
@@ -109,7 +111,10 @@ async function validateGuess(guess) {
                 if (scoreResponse.ok) {
                     const scoreData = await scoreResponse.json();
                     console.log(`Score updated: ${scoreData.newScore} correct answers`);
+                    console.log(`Solved movies: ${scoreData.solvedMovies.join(', ')}`);
                 }
+            } catch (error) {
+                console.error('Error updating score:', error);
             }
         }
 

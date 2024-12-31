@@ -242,24 +242,35 @@ app.post('/api/increment-score', async (req, res) => {
     try {
         const { solanaAddress, movieTitle } = req.body;
         
-        const user = await User.findOne({ solanaAddress });
+        if (!solanaAddress || !movieTitle) {
+            return res.status(400).json({ 
+                message: 'Missing required fields' 
+            });
+        }
+
+        let user = await User.findOne({ solanaAddress });
 
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
 
+        // Vérifier si le film n'est pas déjà dans solvedMovies
         if (!user.solvedMovies.includes(movieTitle)) {
             user.correctAnswers += 1;
             user.solvedMovies.push(movieTitle);
             await user.save();
 
-            res.json({ 
+            console.log(`User ${solanaAddress} solved movie: ${movieTitle}`);
+            console.log(`New score: ${user.correctAnswers}`);
+            console.log(`Solved movies: ${user.solvedMovies.join(', ')}`);
+
+            return res.json({ 
                 message: 'Score updated successfully',
                 newScore: user.correctAnswers,
                 solvedMovies: user.solvedMovies
             });
         } else {
-            res.json({ 
+            return res.json({ 
                 message: 'Movie already solved',
                 newScore: user.correctAnswers,
                 solvedMovies: user.solvedMovies
