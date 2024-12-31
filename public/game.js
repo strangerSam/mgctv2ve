@@ -2,8 +2,46 @@ let currentMovie = null;
 let adminCode = '';
 let testMode = false;
 
+function updateGuessInputState() {
+    const guessInput = document.getElementById('movie-guess');
+    const guessContainer = document.querySelector('.guess-container');
+
+    if (!guessInput || !guessContainer) return;
+
+    // Vérifier si le wallet est connecté
+    const isWalletConnected = window.walletManager?.publicKey;
+
+    if (!isWalletConnected) {
+        // Désactiver l'input
+        guessInput.disabled = true;
+        guessInput.style.backgroundColor = '#f5f5f5';
+        guessInput.style.cursor = 'not-allowed';
+        
+        // Ajouter le message d'avertissement s'il n'existe pas déjà
+        if (!document.querySelector('.wallet-warning')) {
+            const warningMessage = document.createElement('div');
+            warningMessage.className = 'wallet-warning';
+            warningMessage.innerHTML = `
+                <i class="fas fa-exclamation-circle"></i>
+                Connectez votre portefeuille Solana pour participer au jeu
+            `;
+            guessContainer.insertBefore(warningMessage, guessInput);
+        }
+    } else {
+        // Activer l'input
+        guessInput.disabled = false;
+        guessInput.style.backgroundColor = 'white';
+        guessInput.style.cursor = 'text';
+        
+        // Supprimer le message d'avertissement s'il existe
+        const warningMessage = document.querySelector('.wallet-warning');
+        if (warningMessage) {
+            warningMessage.remove();
+        }
+    }
+}
+
 async function checkMovieStatus() {
-    // Vérifier si le wallet est connecté (soit via connexion manuelle, soit via auto-connexion)
     const walletConnected = window.walletManager?.publicKey || localStorage.getItem('wallet-autoconnect') === 'true';
     
     if (!walletConnected) {
@@ -65,6 +103,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         imageElement.src = currentMovie.screenshot;
         imageElement.alt = `Screenshot from movie`;
 
+        // Initialiser l'état de l'input
+        updateGuessInputState();
+
         // Attendre un court instant pour que le wallet s'initialise
         setTimeout(async () => {
             await checkMovieStatus();
@@ -90,6 +131,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         displayError('Error loading game. Please try again later.');
     }
 });
+
+// Ajouter des écouteurs d'événements pour le wallet
+window.addEventListener('wallet-connected', updateGuessInputState);
+window.addEventListener('wallet-disconnected', updateGuessInputState);
 
 function updateCountdown() {
     const countdownContainer = document.getElementById('countdown-container');
@@ -131,6 +176,12 @@ document.getElementById('test-toggle')?.addEventListener('click', () => {
 
 async function validateGuess(guess) {
     if (!guess.trim()) return;
+
+    // Vérifier si le wallet est connecté avant de valider la réponse
+    if (!window.walletManager?.publicKey) {
+        displayError('Please connect your wallet first to make a guess.');
+        return;
+    }
     
     try {
         const normalizedGuess = guess.trim().toLowerCase();
@@ -138,12 +189,6 @@ async function validateGuess(guess) {
         const isCorrect = normalizedGuess === normalizedTitle;
 
         if (isCorrect) {
-            // Vérifier d'abord si le wallet est connecté
-            if (!window.walletManager?.publicKey) {
-                showResult(isCorrect);
-                return;
-            }
-
             try {
                 const scoreResponse = await fetch('https://mgctv2ve-backend.onrender.com/api/increment-score', {
                     method: 'POST',
@@ -253,7 +298,7 @@ async function handleFormSubmit(e) {
     
     const formData = {
         email: e.target.email.value.trim(),
-        solanaAddress: window.walletManager.publicKey // Utilisez directement la publicKey du wallet
+        solanaAddress: window.walletManager.publicKey
     };
 
     try {

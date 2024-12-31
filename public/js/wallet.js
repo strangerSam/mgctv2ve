@@ -74,6 +74,9 @@ class SolanaWalletManager {
             this.updateWalletButton();
             this.startDisconnectTimer();
             
+            // Dispatcher l'événement de connexion
+            window.dispatchEvent(new Event('wallet-connected'));
+            
             await checkMovieStatus();
             
             return true;
@@ -94,6 +97,9 @@ class SolanaWalletManager {
                 clearTimeout(this.disconnectTimer);
                 this.disconnectTimer = null;
             }
+
+            // Dispatcher l'événement de déconnexion
+            window.dispatchEvent(new Event('wallet-disconnected'));
         } catch (err) {
             console.error('Error disconnecting wallet:', err);
         }
