@@ -13,16 +13,33 @@ class SolanaWalletManager {
             console.log('Phantom wallet found!');
             
             try {
+                // Vérifier si le wallet est déjà connecté à la page
+                const isPhantomConnected = this.provider.isConnected;
                 const autoConnectAllowed = localStorage.getItem('wallet-autoconnect') === 'true';
                 
-                if (autoConnectAllowed) {
-                    const resp = await this.provider.connect({ onlyIfTrusted: true });
-                    this.publicKey = resp.publicKey.toString();
+                if (isPhantomConnected && autoConnectAllowed) {
+                    // Si le wallet est déjà connecté, récupérer directement la clé publique
+                    this.publicKey = this.provider.publicKey.toString();
                     this.updateWalletButton();
                     this.startDisconnectTimer();
+                    // Dispatcher l'événement de connexion
+                    window.dispatchEvent(new Event('wallet-connected'));
+                } else if (autoConnectAllowed) {
+                    // Sinon, essayer de se connecter automatiquement
+                    try {
+                        const resp = await this.provider.connect({ onlyIfTrusted: true });
+                        this.publicKey = resp.publicKey.toString();
+                        this.updateWalletButton();
+                        this.startDisconnectTimer();
+                        window.dispatchEvent(new Event('wallet-connected'));
+                    } catch (error) {
+                        console.log('Auto-connection failed, user needs to connect manually');
+                        localStorage.removeItem('wallet-autoconnect');
+                    }
                 }
             } catch (err) {
-                console.log('Auto-connection failed, user needs to connect manually');
+                console.log('Connection check failed:', err);
+                localStorage.removeItem('wallet-autoconnect');
             }
 
             this.addWalletButton();
@@ -74,9 +91,6 @@ class SolanaWalletManager {
             this.updateWalletButton();
             this.startDisconnectTimer();
             
-            // Dispatcher l'événement de connexion
-            window.dispatchEvent(new Event('wallet-connected'));
-            
             await checkMovieStatus();
             
             return true;
@@ -97,9 +111,6 @@ class SolanaWalletManager {
                 clearTimeout(this.disconnectTimer);
                 this.disconnectTimer = null;
             }
-
-            // Dispatcher l'événement de déconnexion
-            window.dispatchEvent(new Event('wallet-disconnected'));
         } catch (err) {
             console.error('Error disconnecting wallet:', err);
         }

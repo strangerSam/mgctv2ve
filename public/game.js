@@ -23,7 +23,7 @@ function updateGuessInputState() {
             warningMessage.className = 'wallet-warning';
             warningMessage.innerHTML = `
                 <i class="fas fa-exclamation-circle"></i>
-                Connectez votre portefeuille Solana pour participer au jeu
+                Please connect your wallet to participate!
             `;
             guessContainer.insertBefore(warningMessage, guessInput);
         }
