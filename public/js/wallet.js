@@ -35,10 +35,11 @@ class SolanaWalletManager {
         try {
             const resp = await this.provider.connect();
             this.publicKey = resp.publicKey.toString();
+            // Sauvegarder l'état de connexion
             localStorage.setItem('wallet-autoconnect', 'true');
             this.updateWalletButton();
             
-            // Ajouter la vérification après connexion du wallet
+            // Ajouter cette ligne pour vérifier si l'utilisateur a déjà résolu le film
             await checkMovieStatus();
             
             return true;
