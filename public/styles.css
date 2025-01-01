@@ -16,6 +16,7 @@ body {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    transition: overflow 0.3s ease; /* Ajout de la transition */
 }
 
 /* Header */
@@ -794,7 +795,9 @@ footer {
             z-index: 9999;
             justify-content: center; /* Ajouté pour centrer verticalement */
             align-items: center; /* Ajouté pour centrer horizontalement */
+            
         }
+        
         .nav-links.active .close-menu-btn {
             display: block;
         }

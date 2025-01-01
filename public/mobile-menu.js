@@ -12,11 +12,18 @@ document.addEventListener('DOMContentLoaded', () => {
     menuToggle.addEventListener('click', () => {
         navLinks.classList.toggle('active');
         menuToggle.classList.toggle('active');
+        // Bloquer/débloquer le scroll en fonction de l'état du menu
+        if(navLinks.classList.contains('active')) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+        }
     });
 
     closeButton.addEventListener('click', () => {
         navLinks.classList.remove('active');
         menuToggle.classList.remove('active');
+        document.body.style.overflow = ''; // Réactiver le scroll
     });
 
     // Fermer le menu lors du clic sur un lien
@@ -25,6 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
         link.addEventListener('click', () => {
             navLinks.classList.remove('active');
             menuToggle.classList.remove('active');
+            document.body.style.overflow = ''; // Réactiver le scroll
         });
     });
 });
