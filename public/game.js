@@ -54,34 +54,34 @@ function updateGuessInputState() {
     // Vérifier si le wallet est connecté
     const isWalletConnected = window.walletManager?.publicKey;
 
+    // S'assurer de supprimer l'ancien message s'il existe
+    const existingWarning = document.querySelector('.wallet-warning');
+    if (existingWarning) {
+        existingWarning.remove();
+    }
+
     if (!isWalletConnected) {
         // Désactiver l'input
         guessInput.disabled = true;
         guessInput.style.backgroundColor = '#f5f5f5';
         guessInput.style.cursor = 'not-allowed';
         
-        // Ajouter le message d'avertissement s'il n'existe pas déjà
-        if (!document.querySelector('.wallet-warning')) {
-            const warningMessage = document.createElement('div');
-            warningMessage.className = 'wallet-warning';
-            warningMessage.innerHTML = `
-                <i class="fas fa-exclamation-circle"></i>
-                Connectez votre portefeuille Solana pour participer au jeu
-            `;
-            guessContainer.insertBefore(warningMessage, guessInput);
-        }
+        // Créer le message d'avertissement
+        const warningMessage = document.createElement('div');
+        warningMessage.className = 'wallet-warning';
+        warningMessage.innerHTML = `
+            <i class="fas fa-exclamation-circle"></i>
+            Connectez votre portefeuille Solana pour participer au jeu
+        `;
+        
+        // Insérer le message d'avertissement au début du conteneur
+        guessContainer.insertBefore(warningMessage, guessContainer.firstChild);
     } else {
         // Activer l'input
         guessInput.disabled = false;
         guessInput.style.backgroundColor = 'white';
         guessInput.style.cursor = 'text';
         
-        // Supprimer le message d'avertissement s'il existe
-        const warningMessage = document.querySelector('.wallet-warning');
-        if (warningMessage) {
-            warningMessage.remove();
-        }
-
         // Vérifier immédiatement si le film a déjà été résolu
         checkMovieStatus();
     }
