@@ -3,7 +3,7 @@ let adminCode = '';
 let testMode = false;
 
 async function checkMovieStatus() {
-    // Vérifier si le wallet est connecté (soit via connexion manuelle, soit via auto-connexion)
+    // Vérifier si le wallet est connecté
     const walletConnected = window.walletManager?.publicKey;
     
     if (!walletConnected) {
@@ -110,18 +110,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Initialiser l'état de l'input
         updateGuessInputState();
 
-        // Attendre un court instant pour que le wallet s'initialise
-        setTimeout(async () => {
-            await checkMovieStatus();
-        }, 500);
-
-        // Initialiser le compte à rebours
-        const countdownContainer = document.getElementById('countdown-container');
-        if (countdownContainer) {
-            updateCountdown();
-            setInterval(updateCountdown, 1000);
-        }
-
         // Configurer l'input de réponse
         const guessInput = document.getElementById('movie-guess');
         guessInput.addEventListener('keypress', function(e) {
@@ -131,11 +119,18 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         });
 
-        // Ajouter les écouteurs d'événements pour le wallet
+        // Initialiser le compte à rebours
+        const countdownContainer = document.getElementById('countdown-container');
+        if (countdownContainer) {
+            updateCountdown();
+            setInterval(updateCountdown, 1000);
+        }
 
-        window.removeEventListener('wallet-connected', updateGuessInputState); // Pour éviter les doublons
+        // Supprimer les anciens écouteurs pour éviter les doublons
+        window.removeEventListener('wallet-connected', updateGuessInputState);
         window.removeEventListener('wallet-disconnected', updateGuessInputState);
 
+        // Ajouter les écouteurs d'événements pour le wallet
         window.addEventListener('wallet-connected', updateGuessInputState);
         window.addEventListener('wallet-disconnected', updateGuessInputState);
         

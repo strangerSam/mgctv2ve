@@ -26,7 +26,6 @@ class SolanaWalletManager {
 
                 this.addWalletButton();
                 this.setupActivityListeners();
-                
             } catch (err) {
                 console.log('Connection check failed:', err);
                 localStorage.removeItem('wallet-autoconnect');
@@ -34,6 +33,39 @@ class SolanaWalletManager {
         } else {
             console.log('Phantom wallet not found!');
             this.addPhantomInstallButton();
+        }
+    }
+
+    setupActivityListeners() {
+        // Liste des événements à surveiller pour réinitialiser le timer
+        const events = ['mousedown', 'keydown', 'scroll', 'touchstart'];
+        
+        events.forEach(event => {
+            document.addEventListener(event, () => {
+                if (this.publicKey) {
+                    this.resetDisconnectTimer();
+                }
+            });
+        });
+    }
+
+    startDisconnectTimer() {
+        if (this.disconnectTimer) {
+            clearTimeout(this.disconnectTimer);
+        }
+        
+        this.disconnectTimer = setTimeout(() => {
+            if (this.publicKey) {
+                console.log('Auto-disconnecting due to inactivity');
+                this.disconnectWallet();
+            }
+        }, this.DISCONNECT_TIMEOUT);
+    }
+
+    resetDisconnectTimer() {
+        if (this.disconnectTimer) {
+            clearTimeout(this.disconnectTimer);
+            this.startDisconnectTimer();
         }
     }
 
@@ -47,6 +79,8 @@ class SolanaWalletManager {
             
             // S'assurer que l'événement est émis après que tout est configuré
             window.dispatchEvent(new Event('wallet-connected'));
+            
+            await checkMovieStatus();
             
             return true;
         } catch (err) {
@@ -119,54 +153,6 @@ class SolanaWalletManager {
         document.querySelector('.nav-links').appendChild(buttonContainer);
     }
 
-    updateWalletButton() {
-        const button = document.querySelector('.wallet-button');
-        if (button) {
-            button.innerHTML = this.publicKey 
-                ? `Connected: ${this.publicKey.slice(0, 4)}...${this.publicKey.slice(-4)}`
-                : 'Connect Wallet';
-        }
-    }
-
-    addWalletButton() {
-        const buttonContainer = document.createElement('div');
-        buttonContainer.className = 'wallet-button-container';
-        
-        const connectButton = document.createElement('button');
-        connectButton.className = 'wallet-button';
-        connectButton.innerHTML = this.publicKey 
-            ? `Connected: ${this.publicKey.slice(0, 4)}...${this.publicKey.slice(-4)}`
-            : 'Connect Wallet';
-        
-        connectButton.onclick = async () => {
-            if (!this.publicKey) {
-                await this.connectWallet();
-            } else {
-                await this.disconnectWallet();
-            }
-        };
-    
-        // Gérer les événements de connexion/déconnexion du Phantom wallet lui-même
-        this.provider.on('connect', () => {
-            this.updateWalletButton();
-            window.dispatchEvent(new Event('wallet-connected'));
-            this.startDisconnectTimer();
-        });
-    
-        this.provider.on('disconnect', () => {
-            this.publicKey = null;
-            this.updateWalletButton();
-            window.dispatchEvent(new Event('wallet-disconnected'));
-            if (this.disconnectTimer) {
-                clearTimeout(this.disconnectTimer);
-                this.disconnectTimer = null;
-            }
-        });
-    
-        buttonContainer.appendChild(connectButton);
-        document.querySelector('.nav-links').appendChild(buttonContainer);
-    }
-
     addPhantomInstallButton() {
         const buttonContainer = document.createElement('div');
         buttonContainer.className = 'wallet-button-container';
@@ -182,15 +168,13 @@ class SolanaWalletManager {
         document.querySelector('.nav-links').appendChild(buttonContainer);
     }
 
-    onWalletConnected(publicKey) {
-        console.log('Wallet connected:', publicKey);
-        // Ici, vous pouvez ajouter la logique pour mettre à jour l'interface
-        // ou vérifier l'existence de l'utilisateur dans votre base de données
-    }
-
-    onWalletDisconnected() {
-        console.log('Wallet disconnected');
-        // Ici, vous pouvez ajouter la logique pour réinitialiser l'interface
+    updateWalletButton() {
+        const button = document.querySelector('.wallet-button');
+        if (button) {
+            button.innerHTML = this.publicKey 
+                ? `Connected: ${this.publicKey.slice(0, 4)}...${this.publicKey.slice(-4)}`
+                : 'Connect Wallet';
+        }
     }
 }
 
