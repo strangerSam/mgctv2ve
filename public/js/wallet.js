@@ -14,18 +14,32 @@ class SolanaWalletManager {
             
             try {
                 // Vérifier si le wallet est déjà connecté à la page
-                const isPhantomConnected = this.provider.isConnected;
+                const isPhantomConnected = this.provider.isConnected && this.provider.publicKey;
                 const autoConnectAllowed = localStorage.getItem('wallet-autoconnect') === 'true';
                 
                 if (isPhantomConnected && autoConnectAllowed) {
+                    // Si le wallet est déjà connecté, récupérer directement la clé publique
                     this.publicKey = this.provider.publicKey.toString();
                     this.updateWalletButton();
                     this.startDisconnectTimer();
                     window.dispatchEvent(new Event('wallet-connected'));
+                } else if (autoConnectAllowed) {
+                    // Sinon, essayer de se connecter automatiquement
+                    try {
+                        const resp = await this.provider.connect({ onlyIfTrusted: true });
+                        this.publicKey = resp.publicKey.toString();
+                        this.updateWalletButton();
+                        this.startDisconnectTimer();
+                        window.dispatchEvent(new Event('wallet-connected'));
+                    } catch (error) {
+                        console.log('Auto-connection failed, user needs to connect manually');
+                        localStorage.removeItem('wallet-autoconnect');
+                    }
                 }
-
+    
                 this.addWalletButton();
                 this.setupActivityListeners();
+                
             } catch (err) {
                 console.log('Connection check failed:', err);
                 localStorage.removeItem('wallet-autoconnect');
