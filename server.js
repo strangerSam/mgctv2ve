@@ -9,10 +9,37 @@ const moment = require('moment-timezone');
 
 const app = express();
 
-// Middleware de base
+
 app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
+app.use(helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "cdnjs.cloudflare.com"],
+        styleSrc: ["'self'", "'unsafe-inline'", "fonts.googleapis.com"],
+        imgSrc: ["'self'", "data:", "*.cloudfront.net"],
+        connectSrc: ["'self'", "https://api.mainnet-beta.solana.com"],
+        fontSrc: ["'self'", "fonts.gstatic.com"],
+        objectSrc: ["'none'"],
+        mediaSrc: ["'self'"],
+        frameSrc: ["'none'"],
+      },
+    },
+    crossOriginEmbedderPolicy: true,
+    crossOriginOpenerPolicy: true,
+    crossOriginResourcePolicy: true,
+    dnsPrefetchControl: true,
+    frameguard: true,
+    hidePoweredBy: true,
+    hsts: true,
+    ieNoOpen: true,
+    noSniff: true,
+    permittedCrossDomainPolicies: true,
+    referrerPolicy: true,
+    xssFilter: true,
+  }));
 
 // Configuration du rate limiter pour les soumissions
 const submissionLimiter = rateLimit({
@@ -29,7 +56,7 @@ const submissionLimiter = rateLimit({
     legacyHeaders: false,
 });
 
-// MongoDB Connection
+
 mongoose.connect(process.env.MONGODB_URI)
     .then(() => console.log('Connected to MongoDB'))
     .catch(err => console.error('Could not connect to MongoDB:', err));
@@ -336,6 +363,14 @@ app.get('/verify-email/:token', async (req, res) => {
     } catch (error) {
         res.status(500).send('Error verifying email.');
     }
+});
+
+app.use((err, req, res, next) => {
+    console.error(err);
+    res.status(500).json({ 
+        message: 'An error occurred',
+        error: process.env.NODE_ENV === 'production' ? 'Internal server error' : err.message 
+    });
 });
 
 const PORT = process.env.PORT || 3000;
