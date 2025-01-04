@@ -2,6 +2,39 @@ let currentMovie = null;
 let adminCode = '';
 let testMode = false;
 
+// Fonction utilitaire pour les appels API sécurisés
+async function secureApiCall(url, options = {}) {
+    const token = sessionStorage.getItem('user_token');
+    const defaultHeaders = {
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+    };
+
+    if (token) {
+        defaultHeaders['Authorization'] = `Bearer ${token}`;
+    }
+
+    const secureOptions = {
+        ...options,
+        headers: {
+            ...defaultHeaders,
+            ...options.headers
+        },
+        credentials: 'same-origin'
+    };
+
+    try {
+        const response = await fetch(url, secureOptions);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response;
+    } catch (error) {
+        console.error('API call error:', error);
+        throw error;
+    }
+}
+
 async function checkMovieStatus() {
     const walletConnected = window.walletManager?.publicKey;
     
@@ -10,9 +43,10 @@ async function checkMovieStatus() {
     }
 
     try {
-        // Sanitize the public key before using it in the URL
         const sanitizedPublicKey = DOMPurify.sanitize(window.walletManager.publicKey);
-        const response = await fetch(`https://mgctv2ve-backend.onrender.com/api/check-movie-solved?solanaAddress=${encodeURIComponent(sanitizedPublicKey)}`);
+        const response = await secureApiCall(
+            `https://mgctv2ve-backend.onrender.com/api/check-movie-solved?solanaAddress=${encodeURIComponent(sanitizedPublicKey)}`
+        );
         const data = await response.json();
 
         if (data.isSolved) {
@@ -40,6 +74,7 @@ async function checkMovieStatus() {
         }
     } catch (error) {
         console.error('Error checking movie status:', error);
+        displayError('Failed to check movie status');
     }
 }
 
@@ -66,9 +101,10 @@ function updateGuessInputState() {
         
         const icon = document.createElement('i');
         icon.className = 'fas fa-exclamation-circle';
-        warningMessage.appendChild(icon);
         
-        const textNode = document.createTextNode(' Connectez votre portefeuille Solana pour participer au jeu');
+        const textNode = document.createTextNode(' Connect your Solana wallet to participate');
+        
+        warningMessage.appendChild(icon);
         warningMessage.appendChild(textNode);
         
         guessContainer.insertBefore(warningMessage, guessContainer.firstChild);
@@ -92,22 +128,27 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     try {
-        const movieResponse = await fetch('https://mgctv2ve-backend.onrender.com/api/daily-movie');
+        const movieResponse = await secureApiCall('https://mgctv2ve-backend.onrender.com/api/daily-movie');
         currentMovie = await movieResponse.json();
         
         const imageElement = document.getElementById('daily-movie-image');
-        imageElement.src = DOMPurify.sanitize(currentMovie.screenshot);
-        imageElement.alt = 'Screenshot from movie';
+        if (imageElement) {
+            imageElement.src = DOMPurify.sanitize(currentMovie.screenshot);
+            imageElement.alt = 'Movie Screenshot';
+        }
 
         updateGuessInputState();
 
         const guessInput = document.getElementById('movie-guess');
-        guessInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                validateGuess(DOMPurify.sanitize(this.value));
-                this.value = '';
-            }
-        });
+        if (guessInput) {
+            guessInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    const sanitizedValue = DOMPurify.sanitize(this.value);
+                    validateGuess(sanitizedValue);
+                    this.value = '';
+                }
+            });
+        }
 
         const countdownContainer = document.getElementById('countdown-container');
         if (countdownContainer) {
@@ -153,24 +194,32 @@ function updateCountdown() {
     countdownContainer.appendChild(timeHTML);
 }
 
-document.getElementById('admin-toggle')?.addEventListener('click', () => {
-    const code = prompt('Enter admin code:');
-    if (code) {
-        adminCode = DOMPurify.sanitize(code);
-        alert('Admin code set');
-    }
-});
+// Sécurisation des contrôles admin
+const adminToggle = document.getElementById('admin-toggle');
+const testToggle = document.getElementById('test-toggle');
 
-document.getElementById('test-toggle')?.addEventListener('click', () => {
-    const code = prompt('Enter test mode code:');
-    if (code === '070518') {
-        testMode = !testMode;
-        alert(testMode ? 'Test mode activated' : 'Test mode deactivated');
-    }
-});
+if (adminToggle) {
+    adminToggle.addEventListener('click', () => {
+        const code = prompt('Enter admin code:');
+        if (code) {
+            adminCode = DOMPurify.sanitize(code);
+            alert('Admin code set');
+        }
+    });
+}
+
+if (testToggle) {
+    testToggle.addEventListener('click', () => {
+        const code = prompt('Enter test mode code:');
+        if (code === '070518') {
+            testMode = !testMode;
+            alert(testMode ? 'Test mode activated' : 'Test mode deactivated');
+        }
+    });
+}
 
 async function validateGuess(guess) {
-    if (!guess.trim()) return;
+    if (!guess || !guess.trim()) return;
 
     if (!window.walletManager?.publicKey) {
         displayError('Please connect your wallet first to make a guess.');
@@ -187,11 +236,8 @@ async function validateGuess(guess) {
                 const sanitizedPublicKey = DOMPurify.sanitize(window.walletManager.publicKey);
                 const sanitizedTitle = DOMPurify.sanitize(currentMovie.title);
                 
-                const scoreResponse = await fetch('https://mgctv2ve-backend.onrender.com/api/increment-score', {
+                const scoreResponse = await secureApiCall('https://mgctv2ve-backend.onrender.com/api/increment-score', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
                     body: JSON.stringify({
                         solanaAddress: sanitizedPublicKey,
                         movieTitle: sanitizedTitle
@@ -200,8 +246,7 @@ async function validateGuess(guess) {
 
                 if (scoreResponse.ok) {
                     const scoreData = await scoreResponse.json();
-                    console.log(`Score updated: ${scoreData.newScore} correct answers`);
-                    console.log(`Solved movies: ${scoreData.solvedMovies.join(', ')}`);
+                    console.log('Score updated successfully');
                 }
             } catch (error) {
                 console.error('Error updating score:', error);
@@ -221,7 +266,7 @@ function showResult(isCorrect) {
     if (!resultElement) {
         resultElement = document.createElement('div');
         resultElement.id = 'guess-result';
-        document.querySelector('.guess-container').appendChild(resultElement);
+        document.querySelector('.guess-container')?.appendChild(resultElement);
     }
 
     resultElement.textContent = isCorrect ? 'Correct!' : 'Try again!';
@@ -229,14 +274,16 @@ function showResult(isCorrect) {
 
     if (isCorrect) {
         const inputField = document.querySelector('.guess-input');
-        inputField.style.display = 'none';
+        if (inputField) {
+            inputField.style.display = 'none';
 
-        const titleDisplay = document.createElement('div');
-        titleDisplay.className = 'movie-title';
-        titleDisplay.textContent = DOMPurify.sanitize(currentMovie.title);
-        inputField.parentNode.insertBefore(titleDisplay, inputField);
+            const titleDisplay = document.createElement('div');
+            titleDisplay.className = 'movie-title';
+            titleDisplay.textContent = DOMPurify.sanitize(currentMovie.title);
+            inputField.parentNode?.insertBefore(titleDisplay, inputField);
 
-        handleCorrectGuess();
+            handleCorrectGuess();
+        }
     }
 }
 
@@ -247,24 +294,27 @@ async function handleCorrectGuess() {
             message.className = 'wallet-message';
             message.textContent = 'Please connect your wallet to participate!';
             const resultElement = document.getElementById('guess-result');
-            resultElement.parentNode.insertBefore(message, resultElement.nextSibling);
+            resultElement?.parentNode?.insertBefore(message, resultElement.nextSibling);
             return;
         }
 
-        const response = await fetch(`https://mgctv2ve-backend.onrender.com/api/check-participation?adminCode=${encodeURIComponent(DOMPurify.sanitize(adminCode))}&testMode=${testMode}`);
+        const response = await secureApiCall(
+            `https://mgctv2ve-backend.onrender.com/api/check-participation?adminCode=${encodeURIComponent(DOMPurify.sanitize(adminCode))}&testMode=${testMode}`
+        );
         const data = await response.json();
+
+        const formContainer = document.querySelector('.user-form-container');
+        if (!formContainer) return;
 
         if (data.hasParticipated) {
             const participationMessage = document.createElement('div');
             participationMessage.className = 'participation-message';
             participationMessage.textContent = 'You have already submitted your information today. Come back tomorrow for a new challenge!';
             const resultElement = document.getElementById('guess-result');
-            resultElement.parentNode.insertBefore(participationMessage, resultElement.nextSibling);
+            resultElement?.parentNode?.insertBefore(participationMessage, resultElement.nextSibling);
 
-            const formContainer = document.querySelector('.user-form-container');
             formContainer.style.display = 'none';
         } else {
-            const formContainer = document.querySelector('.user-form-container');
             formContainer.style.display = 'block';
             
             const formHTML = document.createElement('form');
@@ -295,10 +345,11 @@ async function handleCorrectGuess() {
             formContainer.innerHTML = '';
             formContainer.appendChild(formHTML);
 
-            document.getElementById('user-form').addEventListener('submit', handleFormSubmit);
+            document.getElementById('user-form')?.addEventListener('submit', handleFormSubmit);
         }
     } catch (error) {
         console.error('Error checking participation:', error);
+        displayError('Error checking participation status');
     }
 }
 
@@ -327,7 +378,7 @@ async function handleFormSubmit(e) {
             headers['test-mode'] = 'true';
         }
 
-        const response = await fetch('https://mgctv2ve-backend.onrender.com/api/submit-user', {
+        const response = await secureApiCall('https://mgctv2ve-backend.onrender.com/api/submit-user', {
             method: 'POST',
             headers: headers,
             body: JSON.stringify(formData)
@@ -336,6 +387,8 @@ async function handleFormSubmit(e) {
         const data = await response.json();
         const formContainer = document.querySelector('.user-form-container');
         
+        if (!formContainer) return;
+
         if (response.ok) {
             const successDiv = document.createElement('div');
             successDiv.className = 'success-message';
@@ -354,11 +407,13 @@ async function handleFormSubmit(e) {
     } catch (error) {
         console.error('Error:', error);
         const formContainer = document.querySelector('.user-form-container');
-        const errorDiv = document.createElement('div');
-        errorDiv.className = 'error-message';
-        errorDiv.textContent = 'Error submitting information. Please try again later.';
-        formContainer.innerHTML = '';
-        formContainer.appendChild(errorDiv);
+        if (formContainer) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.textContent = 'Error submitting information. Please try again later.';
+            formContainer.innerHTML = '';
+            formContainer.appendChild(errorDiv);
+        }
     }
 }
 
@@ -369,12 +424,51 @@ function displayError(message) {
         errorElement = document.createElement('div');
         errorElement.id = 'error-message';
         errorElement.className = 'error-message';
-        document.querySelector('.guess-container').appendChild(errorElement);
+        document.querySelector('.guess-container')?.appendChild(errorElement);
     }
     
     errorElement.textContent = DOMPurify.sanitize(message);
     
     setTimeout(() => {
-        errorElement.textContent = '';
+        if (errorElement.parentNode) {
+            errorElement.textContent = '';
+        }
     }, 3000);
 }
+
+// Protection contre les attaques XSS sur l'historique de navigation
+window.addEventListener('popstate', (event) => {
+    if (event.state && typeof event.state === 'string') {
+        event.state = DOMPurify.sanitize(event.state);
+    }
+});
+
+// Protection contre la manipulation des données locales
+const originalSetItem = Storage.prototype.setItem;
+Storage.prototype.setItem = function(key, value) {
+    if (typeof value === 'string') {
+        arguments[1] = DOMPurify.sanitize(value);
+    }
+    originalSetItem.apply(this, arguments);
+};
+
+// Observateur pour détecter les modifications malveillantes du DOM
+const observer = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+        if (mutation.type === 'childList') {
+            mutation.addedNodes.forEach((node) => {
+                if (node.nodeType === 1) { // Element node
+                    const scripts = node.getElementsByTagName('script');
+                    Array.from(scripts).forEach(script => {
+                        script.remove(); // Supprime les scripts injectés
+                    });
+                }
+            });
+        }
+    });
+});
+
+observer.observe(document.body, {
+    childList: true,
+    subtree: true
+});
