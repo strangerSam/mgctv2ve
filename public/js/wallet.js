@@ -122,8 +122,9 @@ class SolanaWalletManager {
     }
 
     addWalletButton() {
-        const buttonContainer = document.createElement('div');
-        buttonContainer.className = 'wallet-button-container';
+        // Chercher le conteneur existant dans le hero-content
+        const buttonContainer = document.querySelector('.wallet-button-container');
+        if (!buttonContainer) return;
         
         const connectButton = document.createElement('button');
         connectButton.className = 'wallet-button';
@@ -138,11 +139,15 @@ class SolanaWalletManager {
                 await this.disconnectWallet();
             }
         };
-
+    
+        // Nettoyer et ajouter le bouton dans le conteneur existant
+        buttonContainer.innerHTML = '';
+        buttonContainer.appendChild(connectButton);
+    
         // Supprimer les anciens écouteurs s'ils existent
         this.provider.removeAllListeners('connect');
         this.provider.removeAllListeners('disconnect');
-
+    
         // Ajouter les nouveaux écouteurs
         this.provider.on('connect', (publicKey) => {
             if (publicKey) {
@@ -152,7 +157,7 @@ class SolanaWalletManager {
                 window.dispatchEvent(new Event('wallet-connected'));
             }
         });
-
+    
         this.provider.on('disconnect', () => {
             this.publicKey = null;
             this.updateWalletButton();
@@ -162,9 +167,6 @@ class SolanaWalletManager {
             }
             window.dispatchEvent(new Event('wallet-disconnected'));
         });
-
-        buttonContainer.appendChild(connectButton);
-        document.querySelector('.nav-links').appendChild(buttonContainer);
     }
 
     addPhantomInstallButton() {

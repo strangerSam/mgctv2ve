@@ -123,21 +123,6 @@ nav a:hover {
     margin-bottom: 30px;
 }
 
-.btn-tell-more {
-    display: inline-block;
-    padding: 12px 30px;
-    background-color: var(--button-color);
-    color: var(--text-color);
-    border-radius: 25px;
-    text-decoration: none;
-    font-size: 1.2rem;
-    transition: background-color 0.3s ease;
-}
-
-.btn-tell-more:hover {
-    background-color: var(--button-hover);
-}
-
 .hero-image img {
     width: 750px;
     height: auto;
@@ -286,24 +271,26 @@ nav a:hover {
 
 /* Wallet Styles */
 .wallet-button-container {
-    display: inline-block;
-    margin-left: 20px;
+    display: block;
+    margin-top: 20px;
+    text-align: left;
 }
 
 .wallet-button {
     background-color: var(--button-color);
     color: var(--text-color);
     border: none;
-    padding: 8px 20px;
+    padding: 12px 30px; /* Augmenté pour mieux correspondre au design */
     border-radius: 25px;
     cursor: pointer;
     font-family: 'Happy Monkey', cursive;
     transition: background-color 0.3s ease;
+    font-size: 1.1rem; /* Ajouté pour mieux correspondre au design */
 }
 
-.wallet-button:hover {
+/*.wallet-button:hover {
     background-color: var(--button-hover);
-}
+}*/
 
 .wallet-warning {
     background-color: rgba(231, 76, 60, 0.1);
@@ -617,6 +604,10 @@ footer {
     .auth-container {
         margin-top: 15px;
         justify-content: center;
+    }
+    .wallet-button-container {
+        text-align: center; /* Centrer pour mobile */
+        margin-top: 30px; /* Plus d'espace en version mobile */
     }
 }
 
