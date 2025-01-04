@@ -3,7 +3,6 @@ let adminCode = '';
 let testMode = false;
 
 async function checkMovieStatus() {
-    // Vérifier si le wallet est connecté
     const walletConnected = window.walletManager?.publicKey;
     
     if (!walletConnected) {
@@ -11,25 +10,24 @@ async function checkMovieStatus() {
     }
 
     try {
-        const response = await fetch(`https://mgctv2ve-backend.onrender.com/api/check-movie-solved?solanaAddress=${window.walletManager.publicKey}`);
+        // Sanitize the public key before using it in the URL
+        const sanitizedPublicKey = DOMPurify.sanitize(window.walletManager.publicKey);
+        const response = await fetch(`https://mgctv2ve-backend.onrender.com/api/check-movie-solved?solanaAddress=${encodeURIComponent(sanitizedPublicKey)}`);
         const data = await response.json();
 
         if (data.isSolved) {
             const guessInput = document.getElementById('movie-guess');
             if (!guessInput) return;
 
-            // Cacher et désactiver l'input
             guessInput.style.display = 'none';
             guessInput.disabled = true;
 
-            // Afficher le titre si ce n'est pas déjà fait
             if (!document.querySelector('.movie-title')) {
                 const titleDisplay = document.createElement('div');
                 titleDisplay.className = 'movie-title';
-                titleDisplay.textContent = data.movieTitle;
+                titleDisplay.textContent = DOMPurify.sanitize(data.movieTitle);
                 guessInput.parentNode.insertBefore(titleDisplay, guessInput);
                 
-                // Ajouter un message de résultat
                 let resultElement = document.getElementById('guess-result');
                 if (!resultElement) {
                     resultElement = document.createElement('div');
@@ -51,44 +49,39 @@ function updateGuessInputState() {
 
     if (!guessInput || !guessContainer) return;
 
-    // Vérifier si le wallet est connecté
     const isWalletConnected = window.walletManager?.publicKey;
 
-    // S'assurer de supprimer l'ancien message s'il existe
     const existingWarning = document.querySelector('.wallet-warning');
     if (existingWarning) {
         existingWarning.remove();
     }
 
     if (!isWalletConnected) {
-        // Désactiver l'input
         guessInput.disabled = true;
         guessInput.style.backgroundColor = '#f5f5f5';
         guessInput.style.cursor = 'not-allowed';
         
-        // Créer le message d'avertissement
         const warningMessage = document.createElement('div');
         warningMessage.className = 'wallet-warning';
-        warningMessage.innerHTML = `
-            <i class="fas fa-exclamation-circle"></i>
-            Connectez votre portefeuille Solana pour participer au jeu
-        `;
         
-        // Insérer le message d'avertissement au début du conteneur
+        const icon = document.createElement('i');
+        icon.className = 'fas fa-exclamation-circle';
+        warningMessage.appendChild(icon);
+        
+        const textNode = document.createTextNode(' Connectez votre portefeuille Solana pour participer au jeu');
+        warningMessage.appendChild(textNode);
+        
         guessContainer.insertBefore(warningMessage, guessContainer.firstChild);
     } else {
-        // Activer l'input
         guessInput.disabled = false;
         guessInput.style.backgroundColor = 'white';
         guessInput.style.cursor = 'text';
         
-        // Vérifier immédiatement si le film a déjà été résolu
         checkMovieStatus();
     }
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // Enregistrement du Service Worker
     if ('serviceWorker' in navigator) {
         try {
             const registration = await navigator.serviceWorker.register('./sw.js');
@@ -99,38 +92,32 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     try {
-        // Charger le film
         const movieResponse = await fetch('https://mgctv2ve-backend.onrender.com/api/daily-movie');
         currentMovie = await movieResponse.json();
         
         const imageElement = document.getElementById('daily-movie-image');
-        imageElement.src = currentMovie.screenshot;
-        imageElement.alt = `Screenshot from movie`;
+        imageElement.src = DOMPurify.sanitize(currentMovie.screenshot);
+        imageElement.alt = 'Screenshot from movie';
 
-        // Initialiser l'état de l'input
         updateGuessInputState();
 
-        // Configurer l'input de réponse
         const guessInput = document.getElementById('movie-guess');
         guessInput.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
-                validateGuess(this.value);
+                validateGuess(DOMPurify.sanitize(this.value));
                 this.value = '';
             }
         });
 
-        // Initialiser le compte à rebours
         const countdownContainer = document.getElementById('countdown-container');
         if (countdownContainer) {
             updateCountdown();
             setInterval(updateCountdown, 1000);
         }
 
-        // Supprimer les anciens écouteurs pour éviter les doublons
         window.removeEventListener('wallet-connected', updateGuessInputState);
         window.removeEventListener('wallet-disconnected', updateGuessInputState);
 
-        // Ajouter les écouteurs d'événements pour le wallet
         window.addEventListener('wallet-connected', updateGuessInputState);
         window.addEventListener('wallet-disconnected', updateGuessInputState);
         
@@ -153,19 +140,23 @@ function updateCountdown() {
     const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
     const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
 
-    countdownContainer.innerHTML = `
-        <div class="countdown-title">Next movie in</div>
-        <div class="countdown-simple">
-            ${String(hours).padStart(2, '0')} : ${String(minutes).padStart(2, '0')} : ${String(seconds).padStart(2, '0')}
-        </div>
-    `;
+    const countdownHTML = document.createElement('div');
+    countdownHTML.className = 'countdown-title';
+    countdownHTML.textContent = 'Next movie in';
+
+    const timeHTML = document.createElement('div');
+    timeHTML.className = 'countdown-simple';
+    timeHTML.textContent = `${String(hours).padStart(2, '0')} : ${String(minutes).padStart(2, '0')} : ${String(seconds).padStart(2, '0')}`;
+
+    countdownContainer.innerHTML = '';
+    countdownContainer.appendChild(countdownHTML);
+    countdownContainer.appendChild(timeHTML);
 }
 
-// Mode Admin et Test
 document.getElementById('admin-toggle')?.addEventListener('click', () => {
     const code = prompt('Enter admin code:');
     if (code) {
-        adminCode = code;
+        adminCode = DOMPurify.sanitize(code);
         alert('Admin code set');
     }
 });
@@ -181,27 +172,29 @@ document.getElementById('test-toggle')?.addEventListener('click', () => {
 async function validateGuess(guess) {
     if (!guess.trim()) return;
 
-    // Vérifier si le wallet est connecté avant de valider la réponse
     if (!window.walletManager?.publicKey) {
         displayError('Please connect your wallet first to make a guess.');
         return;
     }
     
     try {
-        const normalizedGuess = guess.trim().toLowerCase();
+        const normalizedGuess = DOMPurify.sanitize(guess.trim().toLowerCase());
         const normalizedTitle = currentMovie.title.toLowerCase();
         const isCorrect = normalizedGuess === normalizedTitle;
 
         if (isCorrect) {
             try {
+                const sanitizedPublicKey = DOMPurify.sanitize(window.walletManager.publicKey);
+                const sanitizedTitle = DOMPurify.sanitize(currentMovie.title);
+                
                 const scoreResponse = await fetch('https://mgctv2ve-backend.onrender.com/api/increment-score', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        solanaAddress: window.walletManager.publicKey,
-                        movieTitle: currentMovie.title
+                        solanaAddress: sanitizedPublicKey,
+                        movieTitle: sanitizedTitle
                     })
                 });
 
@@ -240,7 +233,7 @@ function showResult(isCorrect) {
 
         const titleDisplay = document.createElement('div');
         titleDisplay.className = 'movie-title';
-        titleDisplay.textContent = currentMovie.title;
+        titleDisplay.textContent = DOMPurify.sanitize(currentMovie.title);
         inputField.parentNode.insertBefore(titleDisplay, inputField);
 
         handleCorrectGuess();
@@ -249,7 +242,6 @@ function showResult(isCorrect) {
 
 async function handleCorrectGuess() {
     try {
-        // Vérifier si le wallet est connecté
         if (!window.walletManager?.publicKey) {
             const message = document.createElement('div');
             message.className = 'wallet-message';
@@ -259,7 +251,7 @@ async function handleCorrectGuess() {
             return;
         }
 
-        const response = await fetch(`https://mgctv2ve-backend.onrender.com/api/check-participation?adminCode=${adminCode}&testMode=${testMode}`);
+        const response = await fetch(`https://mgctv2ve-backend.onrender.com/api/check-participation?adminCode=${encodeURIComponent(DOMPurify.sanitize(adminCode))}&testMode=${testMode}`);
         const data = await response.json();
 
         if (data.hasParticipated) {
@@ -272,18 +264,37 @@ async function handleCorrectGuess() {
             const formContainer = document.querySelector('.user-form-container');
             formContainer.style.display = 'none';
         } else {
-            // Afficher uniquement le champ email
             const formContainer = document.querySelector('.user-form-container');
             formContainer.style.display = 'block';
-            formContainer.innerHTML = `
-                <form id="user-form" class="user-form">
-                    <input type="email" name="email" placeholder="Your email" required class="form-input">
-                    <p class="wallet-info">Connected wallet: ${window.walletManager.publicKey.slice(0, 4)}...${window.walletManager.publicKey.slice(-4)}</p>
-                    <button type="submit" class="form-submit">Submit</button>
-                </form>
-            `;
+            
+            const formHTML = document.createElement('form');
+            formHTML.id = 'user-form';
+            formHTML.className = 'user-form';
+            
+            const emailInput = document.createElement('input');
+            emailInput.type = 'email';
+            emailInput.name = 'email';
+            emailInput.placeholder = 'Your email';
+            emailInput.required = true;
+            emailInput.className = 'form-input';
+            
+            const walletInfo = document.createElement('p');
+            walletInfo.className = 'wallet-info';
+            const walletAddress = window.walletManager.publicKey;
+            walletInfo.textContent = `Connected wallet: ${walletAddress.slice(0, 4)}...${walletAddress.slice(-4)}`;
+            
+            const submitButton = document.createElement('button');
+            submitButton.type = 'submit';
+            submitButton.className = 'form-submit';
+            submitButton.textContent = 'Submit';
+            
+            formHTML.appendChild(emailInput);
+            formHTML.appendChild(walletInfo);
+            formHTML.appendChild(submitButton);
+            
+            formContainer.innerHTML = '';
+            formContainer.appendChild(formHTML);
 
-            // Mettre à jour le gestionnaire d'événements du formulaire
             document.getElementById('user-form').addEventListener('submit', handleFormSubmit);
         }
     } catch (error) {
@@ -294,15 +305,14 @@ async function handleCorrectGuess() {
 async function handleFormSubmit(e) {
     e.preventDefault();
     
-    // Vérifier si le wallet est connecté
     if (!window.walletManager?.publicKey) {
         console.error('No wallet connected');
         return;
     }
     
     const formData = {
-        email: e.target.email.value.trim(),
-        solanaAddress: window.walletManager.publicKey
+        email: DOMPurify.sanitize(e.target.email.value.trim()),
+        solanaAddress: DOMPurify.sanitize(window.walletManager.publicKey)
     };
 
     try {
@@ -311,7 +321,7 @@ async function handleFormSubmit(e) {
         };
 
         if (adminCode) {
-            headers['admin-code'] = adminCode;
+            headers['admin-code'] = DOMPurify.sanitize(adminCode);
         }
         if (testMode) {
             headers['test-mode'] = 'true';
@@ -327,20 +337,28 @@ async function handleFormSubmit(e) {
         const formContainer = document.querySelector('.user-form-container');
         
         if (response.ok) {
-            formContainer.innerHTML = `<div class="success-message">
-                ${data.requiresVerification 
-                    ? data.message 
-                    : 'Information submitted successfully! Thank you for participating.'}
-            </div>`;
-            console.log('Success:', data);
+            const successDiv = document.createElement('div');
+            successDiv.className = 'success-message';
+            successDiv.textContent = data.requiresVerification 
+                ? DOMPurify.sanitize(data.message)
+                : 'Information submitted successfully! Thank you for participating.';
+            formContainer.innerHTML = '';
+            formContainer.appendChild(successDiv);
         } else {
-            formContainer.innerHTML = `<div class="error-message">${data.message || 'An error occurred'}</div>`;
-            console.error('Error data:', data);
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.textContent = DOMPurify.sanitize(data.message || 'An error occurred');
+            formContainer.innerHTML = '';
+            formContainer.appendChild(errorDiv);
         }
     } catch (error) {
         console.error('Error:', error);
         const formContainer = document.querySelector('.user-form-container');
-        formContainer.innerHTML = '<div class="error-message">Error submitting information. Please try again later.</div>';
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'error-message';
+        errorDiv.textContent = 'Error submitting information. Please try again later.';
+        formContainer.innerHTML = '';
+        formContainer.appendChild(errorDiv);
     }
 }
 
@@ -354,7 +372,7 @@ function displayError(message) {
         document.querySelector('.guess-container').appendChild(errorElement);
     }
     
-    errorElement.textContent = message;
+    errorElement.textContent = DOMPurify.sanitize(message);
     
     setTimeout(() => {
         errorElement.textContent = '';

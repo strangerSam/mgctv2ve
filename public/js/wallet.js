@@ -85,20 +85,44 @@ class SolanaWalletManager {
 
     async connectWallet() {
         try {
+            // Informer le serveur de la tentative de connexion
+            const response = await fetch('https://mgctv2ve-backend.onrender.com/api/wallet-connect', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+    
+            if (response.status === 429) {
+                // Code 429 = Too Many Requests
+                throw new Error('Too many connection attempts. Please try again later.');
+            }
+    
             const resp = await this.provider.connect();
             this.publicKey = resp.publicKey.toString();
             localStorage.setItem('wallet-autoconnect', 'true');
             this.updateWalletButton();
             this.startDisconnectTimer();
             
-            // S'assurer que l'événement est émis après que tout est configuré
             window.dispatchEvent(new Event('wallet-connected'));
-            
             await checkMovieStatus();
             
             return true;
         } catch (err) {
             console.error('Error connecting to wallet:', err);
+            
+            // Afficher un message d'erreur à l'utilisateur
+            const errorMessage = err.message === 'Too many connection attempts. Please try again later.' 
+                ? err.message 
+                : 'Error connecting to wallet';
+                
+            // Utilisez votre fonction displayError existante
+            if (typeof displayError === 'function') {
+                displayError(errorMessage);
+            } else {
+                alert(errorMessage);
+            }
+            
             return false;
         }
     }

@@ -9,10 +9,24 @@ const moment = require('moment-timezone');
 
 const app = express();
 
+// Configuration des rate limiters
+const walletLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 5, // 5 tentatives maximum
+    message: { 
+        error: 'Too many connection attempts. Please try again later.' 
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
 // Middleware de base
 app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
+
+// Appliquer le rate limiter aux routes de connexion wallet
+app.use('/api/wallet-connect', walletLimiter);
 
 // Configuration du rate limiter pour les soumissions
 const submissionLimiter = rateLimit({
@@ -336,6 +350,10 @@ app.get('/verify-email/:token', async (req, res) => {
     } catch (error) {
         res.status(500).send('Error verifying email.');
     }
+});
+
+app.post('/api/wallet-connect', walletLimiter, (req, res) => {
+    res.json({ success: true });
 });
 
 const PORT = process.env.PORT || 3000;
