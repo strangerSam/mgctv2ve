@@ -477,43 +477,16 @@ app.use((req, res) => {
     res.status(404).json({ message: 'Route not found' });
 });
 
-// Configuration du serveur HTTPS en production
-if (process.env.NODE_ENV === 'production') {
-    const fs = require('fs');
-    const https = require('https');
-    
-    const privateKey = fs.readFileSync('/etc/letsencrypt/live/moviegoers-cats.com/privkey.pem', 'utf8');
-    const certificate = fs.readFileSync('/etc/letsencrypt/live/moviegoers-cats.com/cert.pem', 'utf8');
-    const ca = fs.readFileSync('/etc/letsencrypt/live/moviegoers-cats.com/chain.pem', 'utf8');
-
-    const credentials = {
-        key: privateKey,
-        cert: certificate,
-        ca: ca
-    };
-
-    const httpsServer = https.createServer(credentials, app);
-    const HTTPS_PORT = process.env.HTTPS_PORT || 443;
-    
-    httpsServer.listen(HTTPS_PORT, () => {
-        console.log(`HTTPS Server running on port ${HTTPS_PORT}`);
-    });
-} else {
-    // Configuration du serveur en développement
-    const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
-    });
-}
+});
 
-// Gestion propre de l'arrêt du serveur
+// Gestion gracieuse de l'arrêt du serveur
 process.on('SIGTERM', () => {
     console.log('SIGTERM signal received: closing HTTP server');
-    server.close(() => {
-        console.log('HTTP server closed');
-        mongoose.connection.close(false, () => {
-            console.log('MongoDB connection closed');
-            process.exit(0);
-        });
+    mongoose.connection.close(false, () => {
+        console.log('MongoDB connection closed');
+        process.exit(0);
     });
 });
