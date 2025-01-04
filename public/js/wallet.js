@@ -170,8 +170,9 @@ class SolanaWalletManager {
     }
 
     addPhantomInstallButton() {
-        const buttonContainer = document.createElement('div');
-        buttonContainer.className = 'wallet-button-container';
+        // Chercher le conteneur existant au lieu d'en créer un nouveau
+        const buttonContainer = document.querySelector('.wallet-button-container');
+        if (!buttonContainer) return;
         
         const installButton = document.createElement('button');
         installButton.className = 'wallet-button';
@@ -179,9 +180,10 @@ class SolanaWalletManager {
         installButton.onclick = () => {
             window.open('https://phantom.app/', '_blank');
         };
-
+    
+        // Nettoyer et ajouter le bouton dans le conteneur existant
+        buttonContainer.innerHTML = '';
         buttonContainer.appendChild(installButton);
-        document.querySelector('.nav-links').appendChild(buttonContainer);
     }
 
     updateWalletButton() {
