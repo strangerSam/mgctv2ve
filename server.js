@@ -10,6 +10,7 @@ const jwt = require('jsonwebtoken');
 const session = require('express-session');
 const cookieParser = require('cookie-parser');
 const helmet = require('helmet');
+const MongoStore = require('connect-mongo');
 
 const app = express();
 
@@ -36,16 +37,19 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 // Configuration des sessions sécurisées
-app.use(cookieParser());
 app.use(session({
     secret: process.env.SESSION_SECRET,
-    name: 'sessionId', // Change le nom par défaut du cookie
+    name: 'sessionId',
     resave: false,
     saveUninitialized: false,
+    store: MongoStore.create({
+        mongoUrl: process.env.MONGODB_URI,
+        ttl: 24 * 60 * 60 // 24 heures
+    }),
     cookie: {
         secure: process.env.NODE_ENV === 'production',
         httpOnly: true,
-        maxAge: 24 * 60 * 60 * 1000, // 24 heures
+        maxAge: 24 * 60 * 60 * 1000,
         sameSite: 'strict'
     }
 }));
@@ -497,8 +501,8 @@ if (process.env.NODE_ENV === 'production') {
 } else {
     // Configuration du serveur en développement
     const PORT = process.env.PORT || 3000;
-    app.listen(PORT, () => {
-        console.log(`Server is running on port ${PORT}`);
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
     });
 }
 
